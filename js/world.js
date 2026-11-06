@@ -51,7 +51,7 @@ class VB {
   }
 }
 
-function rng(seed) {
+export function rng(seed) {
   let a = typeof seed === 'number' ? seed : [...String(seed)].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
@@ -372,7 +372,7 @@ function makeChar(look, opt = {}) {
   const g = new THREE.Group();
   const M = matHalus;
   const mesh = (geo, c, sx, sy, sz, x, y, z, parent = g) => {
-    const m = new THREE.Mesh(geo, M(c)); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m;
+    const m = new THREE.Mesh(geo, typeof c === 'string' ? M(c) : c); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m;
   };
   const baju = opt.baju || look.baju, celana = opt.celana || look.celana;
   const legs = [], arms = [];
@@ -384,7 +384,8 @@ function makeChar(look, opt = {}) {
     legs.push(p);
   }
   // badan telur
-  const badan = mesh(GEO.bola, baju, 0.86, 0.98, 0.76, 0, 0.92, 0);
+  const kain = opt.batik ? matBatik() : baju;   // kain baju (batik untuk Cak Darjo)
+  const badan = mesh(GEO.bola, kain, 0.86, 0.98, 0.76, 0, 0.92, 0);
   if (opt.selempang) { // selempang diagonal: dari bahu kiri ke pinggang kanan, menempel di badan
     const t = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.045, 8, 40), M(opt.selempang));
     t.rotation.order = 'ZYX'; t.rotation.set(0, Math.PI / 2, 0.85);
@@ -395,8 +396,14 @@ function makeChar(look, opt = {}) {
   // lengan pendek + tangan bulat
   for (const s of [-1, 1]) {
     const p = new THREE.Group(); p.position.set(s * 0.38, 1.18, 0); g.add(p);
-    const l = mesh(GEO.kapsul, baju, 0.15, 0.17, 0.15, s * 0.04, -0.17, 0, p); l.rotation.z = s * 0.25;
-    mesh(GEO.bola, look.kulit, 0.16, 0.16, 0.16, s * 0.09, -0.36, 0, p);
+    const l = mesh(GEO.kapsul, kain, 0.15, opt.batik ? 0.19 : 0.17, 0.15, s * 0.04, -0.18, 0, p); l.rotation.z = s * 0.25;
+    mesh(GEO.bola, look.kulit, 0.16, 0.16, 0.16, s * 0.09, -0.38, 0, p);
+    if (opt.batik) { const mz = mesh(GEO.tabung, '#0b5f6b', 0.165, 0.035, 0.165, s * 0.082, -0.315, 0, p); mz.rotation.z = s * 0.25; } // manset lengan panjang
+    if (opt.jam && s < 0) { // jam tangan di pergelangan kiri
+      const tali = mesh(GEO.tabung, '#5a3a22', 0.17, 0.045, 0.17, s * 0.072, -0.285, 0, p); tali.rotation.z = s * 0.25;
+      const muka = mesh(GEO.tabung, '#e6b422', 0.075, 0.03, 0.075, s * 0.074, -0.283, 0.083, p); muka.rotation.x = Math.PI / 2;
+      mesh(GEO.tabung, '#fffaf0', 0.055, 0.032, 0.055, s * 0.074, -0.283, 0.087, p).rotation.x = Math.PI / 2;
+    }
     arms.push(p);
   }
   // kepala besar bulat
@@ -457,6 +464,45 @@ function makeChar(look, opt = {}) {
   }
   return g;
 }
+// Batik khas SidoarjoVerse: motif udang & bandeng di atas teal (dibuat dari kode, tanpa gambar luar)
+let _batik = null;
+function matBatik() {
+  if (_batik) return _batik;
+  const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#0f7c8c'; c.fillRect(0, 0, N, N);
+  // garis lereng tipis (latar)
+  c.strokeStyle = 'rgba(8,70,80,.3)'; c.lineWidth = 2;
+  for (let i = -N; i < N * 2; i += 32) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i - N, N); c.stroke(); }
+  const bandeng = (x, y, s, rot) => {
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
+    c.fillStyle = '#f4ecd8'; c.beginPath(); c.ellipse(0, 0, 22, 8, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(-18, 0); c.lineTo(-32, -10); c.lineTo(-28, 0); c.lineTo(-32, 10); c.closePath(); c.fill();
+    c.fillStyle = '#0f7c8c'; c.beginPath(); c.arc(13, -2, 2.2, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#0f7c8c'; c.lineWidth = 1.6; for (const k of [-6, 0, 6]) { c.beginPath(); c.arc(k, 0, 5, -1.1, 1.1); c.stroke(); }
+    c.restore();
+  };
+  const udang = (x, y, s, rot) => {
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
+    c.strokeStyle = '#f28c28'; c.lineCap = 'round';
+    c.lineWidth = 7; c.beginPath(); c.arc(0, 0, 13, Math.PI * 0.15, Math.PI * 1.25); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(12, 6); c.quadraticCurveTo(26, 8, 30, -6); c.stroke();
+    c.beginPath(); c.moveTo(12, 6); c.quadraticCurveTo(24, 14, 32, 4); c.stroke();
+    c.fillStyle = '#f28c28'; c.beginPath(); c.moveTo(-10, -9); c.lineTo(-20, -16); c.lineTo(-16, -4); c.closePath(); c.fill();
+    c.restore();
+  };
+  const sel = N / 3;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const x = sel * (i + 0.5) + (j % 2 ? sel / 2 : 0), y = sel * (j + 0.5);
+    for (const dx of [0, -N]) { if ((i + j) % 2) udang(x + dx, y, 1.15, 0.4); else bandeng(x + dx, y, 1.15, -0.3); }
+  }
+  // isen-isen titik
+  c.fillStyle = 'rgba(244,236,216,.75)';
+  for (let i = 0; i < 40; i++) { const x = (i * 71) % N, y = (i * 137 + 20) % N; c.beginPath(); c.arc(x, y, 2, 0, Math.PI * 2); c.fill(); }
+  const tx = canvasTex(cv); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(2, 1.5);
+  _batik = new THREE.MeshPhongMaterial({ map: tx, shininess: 14, specular: '#222' });
+  return _batik;
+}
 function gelap(hex) { const c = new THREE.Color(hex); c.multiplyScalar(0.86); return '#' + c.getHexString(); }
 
 // Ikon Cak Darjo: akuarium bundar berisi bandeng & udang (khas Kota Delta)
@@ -515,10 +561,10 @@ export function buatAkuarium() {
 
 // Profil tetap Cak Darjo (dipakai peta, studio video, dan gambar profil)
 export const LOOK_DARJO = { kulit: '#d9a066', baju: '#0f7c8c', celana: '#2b2d42', rambut: '#1a1a1a', kumis: true };
-export const OPT_DARJO = { peci: true, kumis: true, selempang: '#f28c28', akuarium: true };
+export const OPT_DARJO = { peci: true, kumis: true, selempang: '#f28c28', akuarium: true, batik: true, jam: true };
 export function makeCakDarjo(extra = {}) { return makeChar(LOOK_DARJO, Object.assign({}, OPT_DARJO, extra)); }
 
-function makeAyam(r) {
+export function makeAyam(r) {
   const vb = new VB();
   const c = r() < 0.5 ? '#ffffff' : '#c8743c';
   vb.box(0, 0.2, 0, 0.42, 0.34, 0.55, c).box(0, 0.45, 0.25, 0.26, 0.28, 0.26, c).box(0, 0.73, 0.27, 0.08, 0.12, 0.18, '#e63946');
@@ -528,7 +574,7 @@ function makeAyam(r) {
 }
 
 // ---------------------------------------------------------------- dunia
-export function createWorld(canvas, { onPick, onDekat } = {}) {
+export function createWorld(canvas, { onPick, onDekat, manual = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
@@ -865,9 +911,10 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
   ];
   const cA = new THREE.Color(), cB = new THREE.Color();
   let malam = false;
+  let jamTetap = null; // dipakai mode video: jam langit tetap
   function updateLangit() {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    const h = now.getHours() + now.getMinutes() / 60;
+    const h = jamTetap ?? (now.getHours() + now.getMinutes() / 60);
     let i = 0; while (i < LANGIT.length - 2 && LANGIT[i + 1][0] <= h) i++;
     const [h0, c0, e0, s0] = LANGIT[i], [h1, c1, e1, s1] = LANGIT[i + 1];
     const k = (h - h0) / (h1 - h0 || 1);
@@ -979,8 +1026,7 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
   }
 
   const timer = new THREE.Timer(); timer.connect(document);
-  renderer.setAnimationLoop(() => {
-    timer.update(); const dt = Math.min(timer.getDelta(), 0.05), t = timer.getElapsed();
+  function langkah(dt, t, kameraManual) {
     for (const c of chars) { stepChar(c, dt, t); if (c.g.userData.tick) c.g.userData.tick(t); }
     if (pemain) stepPemain(dt, t);
     for (const a of ayam) stepAyam(a, dt, t);
@@ -998,8 +1044,12 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
       camera.position.x += (p.x - controls.target.x) * 0.08; camera.position.z += (p.z - controls.target.z) * 0.08;
       controls.target.x += (p.x - controls.target.x) * 0.08; controls.target.z += (p.z - controls.target.z) * 0.08;
     }
-    controls.update();
+    if (!kameraManual) controls.update();
     renderer.render(scene, camera);
+  }
+  if (!manual) renderer.setAnimationLoop(() => {
+    timer.update();
+    langkah(Math.min(timer.getDelta(), 0.05), timer.getElapsed(), false);
   });
   resize();
 
@@ -1053,6 +1103,10 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
     },
     gerak(x, y) { masukan.x = x; masukan.y = y; },
     sedangMain: () => !!pemain,
+    // ----- untuk mode video (manual)
+    frame(dt, t) { langkah(dt, t, true); },
+    setJam(h) { jamTetap = h; updateLangit(); },
+    scene, camera, renderer,
     posisiPemain: () => pemain ? [pemain.g.position.x, pemain.g.position.z] : null,
     bisaDi,
   };
