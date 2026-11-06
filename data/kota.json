@@ -1,0 +1,43 @@
+{
+  "nama": "SidoarjoVerse",
+  "kota": "Sidoarjo",
+  "tagline": "Kota Delta yang dibangun dari komen kamu",
+  "day": 0,
+  "follower": 1,
+  "diperbarui": "2026-11-06 08:00",
+  "jalan": false,
+  "ayam": 0,
+  "berita": [
+    "DAY 0: SidoarjoVerse masih tanah kosong. Wargane cuma Cak Darjo.",
+    "Follow = jadi warga. Komen dengan like terbanyak dibangun besok.",
+    "Mau bangun apa duluan? Tulis di kolom komen!"
+  ],
+  "maskot": {
+    "nama": "Cak Darjo",
+    "jabatan": "Kepala Kota",
+    "kalimat": [
+      "Monggo, selamat datang di SidoarjoVerse!",
+      "Kota iki sik kosong. Sampeyan pengen dibangun apa?",
+      "Komen paling banyak like, besok tak bangun.",
+      "Ojok lali bikin KTP, biar sampeyan ikut jalan-jalan.",
+      "Saiki wargane cuma aku. Ayo dadi warga!"
+    ],
+    "jadwal": [
+      { "mulai": "05:00", "selesai": "22:00", "lok": "keliling", "ket": "" },
+      { "mulai": "22:00", "selesai": "05:00", "lok": "keliling", "ket": "Jaga malam sendirian. Sepi, rek." }
+    ]
+  },
+  "bangunan": [],
+  "info": [
+    { "id": "i1", "judul": "DAY 0: Kota masih kosong", "isi": "Halo! Aku Cak Darjo, warga pertama dan satu-satunya di SidoarjoVerse.\n\nKota ini masih tanah kosong. Semua yang dibangun di sini ditentukan dari komentar kalian:\n- Follow = jadi warga\n- Komen usulan bangunan di postingan terbaru\n- Komen dengan like terbanyak dibangun besok\n\nBikin KTP supaya karaktermu ikut jalan-jalan di peta.", "label": "Pengumuman", "tanggal": "2026-11-06", "pin": true }
+  ],
+  "donasi": [],
+  "akun": {
+    "instagram": "https://www.instagram.com/",
+    "tiktok": "https://www.tiktok.com/",
+    "youtube": "",
+    "facebook": ""
+  },
+  "pekerjaan": ["Petambak", "Petani", "Pedagang", "Pengrajin Tas", "Pembatik", "Guru", "Pelajar", "Mahasiswa", "Nakes", "Ojol", "Karyawan", "Santri", "Konten Kreator", "Wiraswasta"],
+  "kecamatan": ["Sidoarjo", "Buduran", "Candi", "Porong", "Krembung", "Tulangan", "Tanggulangin", "Jabon", "Krian", "Balongbendo", "Wonoayu", "Tarik", "Prambon", "Taman", "Waru", "Gedangan", "Sedati", "Sukodono"]
+}

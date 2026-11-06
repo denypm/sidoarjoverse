@@ -1,0 +1,26 @@
+body.admin { overflow: auto; }
+.hd-act { display: flex; gap: 8px; }
+.btn.kecil { padding: 6px 12px; font-size: 13px; border-color: #fff; color: #fff; }
+.adm { max-width: 920px; margin: 0 auto; padding: calc(var(--top-h) + 18px) 14px 110px; }
+.kotak { background: #fff; border: 1.5px solid var(--garis); border-radius: 16px; padding: 20px; max-width: 420px; margin: 30px auto; }
+.atabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; position: sticky; top: var(--top-h); background: var(--krem); padding: 10px 0; z-index: 5; }
+.atabs button { border: 2px solid var(--garis); background: #fff; border-radius: 10px; padding: 8px 14px; font-weight: 800; color: var(--abu); }
+.atabs button.on { border-color: var(--teal); color: var(--teal); background: #e6f3f5; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 14px; }
+.row { background: #fff; border: 1.5px solid var(--garis); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.row .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.row .hd b { font-size: 15px; }
+.row .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 10px; }
+.row .grid .fld { margin: 0; }
+.row .grid .lebar { grid-column: 1 / -1; }
+.fld label.k { font-size: 12px; color: var(--abu); margin-bottom: 3px; }
+.row .inp, .row select.inp { padding: 8px 10px; font-size: 14px; border-radius: 9px; }
+.hapus { border: 0; background: #fdecea; color: #c62828; font-weight: 800; border-radius: 8px; padding: 6px 10px; font-size: 12px; }
+.tambah { margin: 4px 0 18px; }
+.simpanbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; gap: 14px; padding: 12px; background: var(--teal); color: #fff; font-weight: 700; z-index: 30; flex-wrap: wrap; }
+.simpanbar[hidden] { display: none; }
+.wrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--garis); }
+.wrow span { flex: 1; }
+.wrow small { color: var(--abu); display: block; }
+.tip { background: #e6f3f5; border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+textarea.inp { min-height: 90px; resize: vertical; }

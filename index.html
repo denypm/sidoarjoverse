@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SidoarjoVerse — Kota Delta yang dibangun dari komen kamu</title>
+<meta name="description" content="Peta live SidoarjoVerse: kota 3D yang dibangun dari komentar netizen. Follow = jadi warga.">
+<meta name="theme-color" content="#0f4c5c">
+<meta property="og:title" content="SidoarjoVerse">
+<meta property="og:description" content="Kota Delta yang dibangun dari komen kamu. Follow = jadi warga.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">Sidoarjo<b>Verse</b></span>
+    <span class="day" id="dayBadge">DAY –</span>
+  </div>
+  <div class="clock"><span id="clock">memuat…</span><span class="phase" id="phase">–</span></div>
+</header>
+<div class="ticker" aria-label="Berita kota"><div class="ticker-track" id="ticker"></div></div>
+
+<main class="stage">
+  <section id="view-peta" class="view active" aria-label="Peta kota">
+    <canvas id="map" aria-label="Peta 3D SidoarjoVerse"></canvas>
+    <div class="warga-card">
+      <div class="lbl">WARGA</div>
+      <div class="num" id="warga">0</div>
+      <div class="upd" id="wargaUpd"></div>
+    </div>
+    <div class="zoom">
+      <button type="button" id="zin" aria-label="Perbesar">+</button>
+      <button type="button" id="zout" aria-label="Perkecil">−</button>
+      <button type="button" id="cariCak" aria-label="Cari Cak Darjo" title="Cari Cak Darjo">★</button>
+    </div>
+    <button type="button" class="cta" id="ctaKtp">🪪 Bikin KTP &amp; jadi warga</button>
+    <div id="hint" class="hint">Geser untuk keliling · 2 jari untuk zoom &amp; putar · ketuk bangunan atau warga</div>
+    <div id="card" class="card" hidden role="dialog">
+      <button type="button" class="card-x" id="cardX" aria-label="Tutup">×</button>
+      <div id="cardBody"></div>
+    </div>
+    <div id="loading" class="loading"><div class="spin"></div>Menyiapkan kota…</div>
+  </section>
+
+  <section id="view-info" class="view panel" aria-label="Info kota">
+    <h2>Pusat Informasi Kota</h2>
+    <p class="sub">Pengumuman resmi dari Cak Darjo.</p>
+    <div id="infoList"></div>
+    <h3 class="sec">Riwayat Pembangunan</h3>
+    <p class="sub">Semua yang sudah dibangun warga, dari yang terbaru.</p>
+    <div id="riwayat"></div>
+  </section>
+
+  <section id="view-ktp" class="view panel" aria-label="KTP warga"><div id="ktpView"></div></section>
+
+  <section id="view-klasemen" class="view panel" aria-label="Klasemen kecamatan">
+    <h2>Klasemen Kecamatan</h2>
+    <p class="sub">18 kecamatan Sidoarjo berebut warga terbanyak. Kecamatanmu nomor berapa?</p>
+    <div id="klasemen"></div>
+    <h3 class="sec">Cari Warga</h3>
+    <input type="search" id="cariNama" class="inp" placeholder="Ketik nama warga…" autocomplete="off">
+    <div id="hasilCari"></div>
+  </section>
+
+  <section id="view-donasi" class="view panel" aria-label="Donasi">
+    <h2>Donasi Kota</h2>
+    <p class="sub">Semua dana dilaporkan terbuka di media sosial resmi.</p>
+    <div id="donasi"></div>
+  </section>
+
+  <section id="view-akun" class="view panel" aria-label="Akun resmi">
+    <h2>Akun Resmi</h2>
+    <p class="warn">SidoarjoVerse cuma satu. Akun resmi hanya yang tercantum di sini.</p>
+    <div id="akun" class="akun"></div>
+    <p class="mini" id="modeInfo"></p>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Menu">
+  <button type="button" class="tab active" data-view="peta"><span class="ic">🗺️</span><span class="lbl">Peta</span></button>
+  <button type="button" class="tab" data-view="info"><span class="ic">📢</span><span class="lbl">Info</span></button>
+  <button type="button" class="tab" data-view="ktp"><span class="ic">🪪</span><span class="lbl">KTP</span></button>
+  <button type="button" class="tab" data-view="klasemen"><span class="ic">🏆</span><span class="lbl">Klasemen</span></button>
+  <button type="button" class="tab" data-view="donasi"><span class="ic">💝</span><span class="lbl">Donasi</span></button>
+  <button type="button" class="tab" data-view="akun"><span class="ic">✅</span><span class="lbl">Akun</span></button>
+</nav>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
