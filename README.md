@@ -76,3 +76,12 @@ Domain sendiri (misalnya `sidoarjoverse.id`) bisa dipasang di pengaturan domain 
 - Ganti `DEMO_ADMIN_PASSWORD` atau sambungkan Supabase sebelum online. Password demo hanya melindungi mode demo di browser sendiri.
 
 Three.js © three.js authors, lisensi MIT (`vendor/THREE-LICENSE.txt`).
+
+## Update: fitur Pemilu (wajib sekali)
+
+Jalankan `supabase/02-pemilu.sql` di **Supabase → SQL Editor** (setelah `schema.sql`). Isinya:
+- **PIN rahasia per KTP**: dipakai untuk vote dan membuka KTP di HP lain. PIN tidak bisa dibaca orang lain.
+- Tabel **pemilu**, **kandidat**, dan **suara**: 1 KTP = 1 suara, pilihan rahasia, dan KTP yang dibuat setelah voting dibuka tidak bisa ikut memilih.
+- View **pejabat**: pemenang terakhir per jabatan. Labelnya tampil di atas karakter di peta.
+
+Cara pakai ada di **admin → Pemilu**.

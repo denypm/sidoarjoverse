@@ -164,3 +164,23 @@ button { font: inherit; cursor: pointer; }
   .card { bottom: 92px; }
   .panel { padding-bottom: 110px; }
 }
+
+/* pemilu */
+.tab { font-size: 10.5px; min-width: 0; }
+.tab .ic { padding: 2px 9px; }
+.chip.jab { background: #fff3c4; color: #6b4e00; margin: 2px 0; }
+.pinbox { background: #fffaf0; border-color: #f6c08a; text-align: left; }
+.pinbox .pin { font-family: ui-monospace, monospace; font-size: 18px; letter-spacing: 2px; color: var(--teal); }
+.item.pemilu.voting { border-color: var(--teal2); box-shadow: 0 3px 0 #b7dbe1; }
+.kand { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px dashed var(--garis); }
+.kand canvas { width: 48px; height: 48px; border-radius: 10px; flex: 0 0 auto; }
+.kand .kd { flex: 1; min-width: 0; }
+.kand .kd b { display: block; font-size: 15px; }
+.kand .kd small { color: var(--abu); font-size: 12px; }
+.kand .visi { font-size: 13px; font-style: italic; margin: 3px 0 0; white-space: normal; }
+.kand .bar { margin: 6px 0 2px; height: 8px; }
+.kand.menang { background: #fff8dc; border-radius: 10px; padding: 10px 8px; }
+.kand.pilihanku { background: #e6f3f5; border-radius: 10px; padding: 10px 8px; }
+.btn.kecilv { padding: 8px 14px; font-size: 14px; }
+@media (max-width: 380px) { .tab .lbl { font-size: 9.5px; } .tab .ic { font-size: 18px; padding: 2px 6px; } }
+@media (min-width: 900px) { .tabs { width: 700px; } }

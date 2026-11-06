@@ -602,7 +602,8 @@ export function createWorld(canvas, { onPick } = {}) {
     return c;
   }
 
-  function setWarga(list, kodeSaya) {
+  // jabatan: { [kode]: 'Ketua RT Blok A' }
+  function setWarga(list, kodeSaya, jabatan = {}) {
     for (const c of chars.splice(0)) charsG.remove(c.g);
     const r = rng(42);
     // maskot
@@ -613,10 +614,12 @@ export function createWorld(canvas, { onPick } = {}) {
     maskot.speed = 1.6;
     for (const w of list || []) {
       const saya = w.kode && w.kode === kodeSaya;
-      spawn(lookFor(w), {}, {
-        label: (saya ? '⭐ ' : '') + w.nama,
-        labelStyle: saya ? { bg: 'rgba(15,76,92,.96)', fg: '#ffd166', size: 0.9 } : { bg: 'rgba(255,255,255,.93)', fg: '#16324f', size: 0.75 },
-        jenis: 'warga', data: w,
+      const jab = w.kode && jabatan[w.kode];
+      const label = (jab ? `🎖 ${jab} · ` : '') + (saya ? '⭐ ' : '') + w.nama;
+      const style = jab ? { bg: 'rgba(230,180,34,.97)', fg: '#3b2a00', size: 0.88, border: '#8a6500' }
+        : saya ? { bg: 'rgba(15,76,92,.96)', fg: '#ffd166', size: 0.9 } : { bg: 'rgba(255,255,255,.93)', fg: '#16324f', size: 0.75 };
+      spawn(lookFor(w), jab ? { selempang: '#e6b422', skala: 0.68 } : {}, {
+        label, labelStyle: style, jenis: 'warga', data: Object.assign({}, w, jab ? { jabatan: jab } : {}),
       }, r);
     }
     // ayam berkeliaran
@@ -820,7 +823,13 @@ export function createWorld(canvas, { onPick } = {}) {
       camera.position.copy(controls.target).add(off.setLength(len));
     },
     fokusBangunan(id) { const p = bangunanPos.get(id); if (p) fokusKe(p.x, p.z); },
-    ikuti(obj) { ikuti = obj || null; },
+    ikuti(obj) {
+      ikuti = obj || null;
+      if (obj) { // dekatkan kamera supaya label terbaca
+        const off = camera.position.clone().sub(controls.target);
+        if (off.length() > 34) camera.position.copy(controls.target).add(off.setLength(34));
+      }
+    },
     cariWarga(kode) { return chars.find(c => c.g.userData.pick.data && c.g.userData.pick.data.kode === kode); },
     maskot: () => maskot,
   };

@@ -24,3 +24,12 @@ body.admin { overflow: auto; }
 .wrow small { color: var(--abu); display: block; }
 .tip { background: #e6f3f5; border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
 textarea.inp { min-height: 90px; resize: vertical; }
+
+.row.stat { display: flex; gap: 12px; flex-wrap: wrap; }
+.row.stat > div { flex: 1; min-width: 140px; }
+.row.stat small { display: block; color: var(--abu); font-size: 12px; }
+.row.stat b { font-size: 26px; color: var(--teal); }
+.kandrow { border-top: 1px dashed var(--garis); padding: 10px 0; }
+.btn.kecil2 { padding: 7px 12px; font-size: 13px; box-shadow: none; }
+.btn.ghost.kecil2 { color: var(--teal); border: 2px solid var(--teal); }
+.chip.selesai { background: #d8f3dc; color: #1b5e20; } .chip.lahan { background: #efe3cf; color: #5c4033; }
