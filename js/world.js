@@ -371,19 +371,93 @@ function makeChar(look, opt = {}) {
     part(0.24, 0.5, 0.28, baju, -0.2, p); part(0.22, 0.26, 0.26, look.kulit, -0.56, p);
     arms.push(p);
   }
-  // kepala: tekstur wajah di sisi depan (+z)
-  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
-  drawFace(cv.getContext('2d'), 0, 0, 64, look, opt);
-  const ft = canvasTex(cv); ft.magFilter = THREE.NearestFilter; ft.minFilter = THREE.NearestFilter;
-  const atas = look.kerudung || (opt.peci ? '#151515' : look.rambut);
+  // kepala: tekstur wajah di sisi depan (+z). Disiapkan 3 ekspresi mulut (untuk video bicara).
+  const wajah = {};
+  for (const m of ['diam', 'buka', 'senyum']) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    drawFace(cv.getContext('2d'), 0, 0, 128, look, Object.assign({}, opt, { mulut: m }));
+    const tx = canvasTex(cv); tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter;
+    wajah[m] = tx;
+  }
+  const ft = wajah[opt.mulutAwal || 'diam'];
+  const atas = look.kerudung || look.rambut;
   const sisi = look.kerudung || look.kulit;
   const head = new THREE.Mesh(UNIT, [M(sisi), M(sisi), M(atas), M(look.kulit), new THREE.MeshLambertMaterial({ map: ft }), M(look.kerudung || look.rambut)]);
   head.scale.set(0.72, 0.72, 0.72); head.position.y = 1.86; head.castShadow = true; g.add(head);
-  if (opt.peci) part(0.74, 0.26, 0.74, '#151515', 2.3);
+  if (opt.peci) { part(0.7, 0.2, 0.62, '#151515', 2.31); part(0.705, 0.035, 0.625, '#3a3a3a', 2.24); }
   if (look.rambutPanjang && !look.kerudung) part(0.74, 0.6, 0.2, look.rambut, 1.75, g, 0, -0.32);
   g.userData.anim = { legs, arms, head };
+  g.userData.ekspresi = m => { if (wajah[m]) { head.material[4].map = wajah[m]; head.material[4].needsUpdate = true; } };
+  if (opt.akuarium) {
+    // kedua tangan memegang akuarium di depan dada; ayunan tangan saat berjalan dimatikan
+    for (const [i, a] of arms.entries()) { a.rotation.x = -1.0; a.rotation.z = i ? -0.4 : 0.4; }
+    g.userData.anim.arms = [new THREE.Object3D(), new THREE.Object3D()];
+    const ak = buatAkuarium();
+    ak.group.position.set(0, 0.98, 0.6);
+    g.add(ak.group);
+    g.userData.tick = ak.tick;
+  }
   return g;
 }
+
+// Ikon Cak Darjo: akuarium bundar berisi bandeng & udang (khas Kota Delta)
+export function buatAkuarium() {
+  const grp = new THREE.Group();
+  const R = 0.4;
+  const kaca = new THREE.Mesh(new THREE.IcosahedronGeometry(R, 2),
+    new THREE.MeshPhongMaterial({ color: '#dff6ff', transparent: true, opacity: 0.28, shininess: 120, specular: '#ffffff', depthWrite: false }));
+  kaca.renderOrder = 3;
+  const air = new THREE.Mesh(new THREE.IcosahedronGeometry(R * 0.92, 2), new THREE.MeshLambertMaterial({ color: '#46b4e6', transparent: true, opacity: 0.42, depthWrite: false }));
+  air.scale.y = 0.78; air.position.y = -0.05; air.renderOrder = 2;
+  const bibir = new THREE.Mesh(new THREE.TorusGeometry(R * 0.55, 0.035, 6, 16), new THREE.MeshLambertMaterial({ color: '#bfe9f7' }));
+  bibir.rotation.x = Math.PI / 2; bibir.position.y = R * 0.83;
+  const pasir = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.62, R * 0.5, 0.08, 10), new THREE.MeshLambertMaterial({ color: '#ead7a4' }));
+  pasir.position.y = -R * 0.8;
+  grp.add(pasir, air, bibir, kaca);
+  // rumput air
+  const hijau = mat('#3fa34d');
+  for (const [x, z, h] of [[-0.14, -0.08, 0.22], [-0.09, -0.12, 0.16], [0.15, -0.1, 0.18]]) {
+    const r = new THREE.Mesh(UNIT, hijau); r.scale.set(0.03, h, 0.03); r.position.set(x, -R * 0.75 + h / 2, z); grp.add(r);
+  }
+  // bandeng: badan perak memanjang, punggung kebiruan, ekor bercabang
+  const bandeng = new THREE.Group();
+  const kotak = (w, h, d, c, x, y, z, p = bandeng) => { const m = new THREE.Mesh(UNIT, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); p.add(m); return m; };
+  kotak(0.3, 0.085, 0.07, '#d9e2e8', 0, 0, 0);
+  kotak(0.26, 0.03, 0.072, '#7f97a8', 0, 0.035, 0);
+  kotak(0.06, 0.06, 0.074, '#c7d2da', 0.16, -0.005, 0);
+  kotak(0.012, 0.016, 0.076, '#111', 0.175, 0.012, 0);
+  const e1 = kotak(0.08, 0.025, 0.02, '#a9b8c3', -0.18, 0.025, 0); e1.rotation.z = 0.55;
+  const e2 = kotak(0.08, 0.025, 0.02, '#a9b8c3', -0.18, -0.025, 0); e2.rotation.z = -0.55;
+  kotak(0.06, 0.03, 0.01, '#a9b8c3', 0.0, 0.065, 0);
+  bandeng.scale.setScalar(0.95);
+  grp.add(bandeng);
+  // udang kecil: ruas oranye melengkung + sungut
+  const udang = new THREE.Group();
+  const ruas = ['#ff8a5b', '#ff7a4a', '#ff8a5b', '#ff9b70'];
+  ruas.forEach((c, i) => { const m = kotak(0.045, 0.04, 0.04, c, -i * 0.04, -i * i * 0.006, 0, udang); m.rotation.z = -i * 0.25; });
+  kotak(0.03, 0.03, 0.05, '#ff7a4a', -0.17, -0.05, 0, udang);
+  const s1 = kotak(0.1, 0.006, 0.006, '#ffb08f', 0.06, 0.03, 0.012, udang); s1.rotation.z = 0.5;
+  const s2 = kotak(0.1, 0.006, 0.006, '#ffb08f', 0.06, 0.03, -0.012, udang); s2.rotation.z = 0.35;
+  kotak(0.01, 0.01, 0.045, '#111', 0.02, 0.018, 0, udang);
+  udang.position.set(0.06, -R * 0.62, 0.08);
+  grp.add(udang);
+  const tick = t => {
+    const a = t * 0.9;   // bandeng berenang memutar
+    bandeng.position.set(Math.cos(a) * 0.16, 0.02 + Math.sin(t * 1.7) * 0.03, Math.sin(a) * 0.16);
+    bandeng.rotation.y = -a - Math.PI / 2;
+    e1.rotation.y = e2.rotation.y = Math.sin(t * 9) * 0.5;
+    udang.position.x = 0.06 + Math.sin(t * 0.6) * 0.1;           // udang merayap di pasir
+    udang.rotation.y = Math.cos(t * 0.6) > 0 ? 0 : Math.PI;
+    udang.position.y = -R * 0.62 + Math.abs(Math.sin(t * 3)) * 0.012;
+  };
+  tick(0);
+  return { group: grp, tick };
+}
+
+// Profil tetap Cak Darjo (dipakai peta, studio video, dan gambar profil)
+export const LOOK_DARJO = { kulit: '#d9a066', baju: '#0f7c8c', celana: '#2b2d42', rambut: '#1a1a1a', kumis: true };
+export const OPT_DARJO = { peci: true, kumis: true, selempang: '#f28c28', akuarium: true };
+export function makeCakDarjo(extra = {}) { return makeChar(LOOK_DARJO, Object.assign({}, OPT_DARJO, extra)); }
 
 function makeAyam(r) {
   const vb = new VB();
@@ -614,8 +688,7 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
     const r = rng(42);
     // maskot
     const m = (kota && kota.maskot) || { nama: 'Cak Darjo' };
-    const lookM = { kulit: '#d9a066', baju: '#0f7c8c', celana: '#2b2d42', rambut: '#1a1a1a', kumis: true };
-    maskot = spawn(lookM, { peci: true, kumis: true, selempang: '#f28c28', skala: 0.74 },
+    maskot = spawn(LOOK_DARJO, Object.assign({}, OPT_DARJO, { skala: 0.74 }),
       { label: '★ ' + m.nama, labelStyle: { bg: 'rgba(242,140,40,.97)', fg: '#fff', size: 0.95 }, jenis: 'maskot', data: m }, r);
     maskot.speed = 1.6;
     for (const w of list || []) {
@@ -849,7 +922,7 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
   const timer = new THREE.Timer(); timer.connect(document);
   renderer.setAnimationLoop(() => {
     timer.update(); const dt = Math.min(timer.getDelta(), 0.05), t = timer.getElapsed();
-    for (const c of chars) stepChar(c, dt, t);
+    for (const c of chars) { stepChar(c, dt, t); if (c.g.userData.tick) c.g.userData.tick(t); }
     if (pemain) stepPemain(dt, t);
     for (const a of ayam) stepAyam(a, dt, t);
     for (const c of awanG.children) { c.position.x += c.userData.v * dt; if (c.position.x > 70) c.position.x = -70; }

@@ -51,11 +51,18 @@ export function drawFace(ctx, x, y, s, look, opt = {}) {
     ctx.strokeRect(x + u * 1.3, y + u * 2.8, u * 2.2, u * 2); ctx.strokeRect(x + u * 4.5, y + u * 2.8, u * 2.2, u * 2);
     ctx.beginPath(); ctx.moveTo(x + u * 3.5, y + u * 3.6); ctx.lineTo(x + u * 4.5, y + u * 3.6); ctx.stroke();
   }
+  // hidung
+  ctx.fillStyle = 'rgba(90,40,10,.18)'; ctx.fillRect(x + u * 3.6, y + u * 4.3, u * 0.8, u * 0.9);
   // pipi
   ctx.fillStyle = 'rgba(230,80,80,.25)'; ctx.fillRect(x + u * 1, y + u * 5, u * 1.2, u * 0.8); ctx.fillRect(x + u * 5.8, y + u * 5, u * 1.2, u * 0.8);
   // kumis / mulut
   if (look.kumis || opt.kumis) { ctx.fillStyle = '#2a1a10'; ctx.fillRect(x + u * 2.4, y + u * 5.3, u * 3.2, u * 0.8); }
-  ctx.fillStyle = '#7a2e2e'; ctx.fillRect(x + u * 3, y + u * 6.3, u * 2, u * 0.6);
+  if (opt.mulut === 'buka') { // sedang bicara
+    ctx.fillStyle = '#4a1414'; ctx.fillRect(x + u * 2.7, y + u * 6.1, u * 2.6, u * 1.3);
+    ctx.fillStyle = '#e86a6a'; ctx.fillRect(x + u * 3.2, y + u * 6.9, u * 1.6, u * 0.5);
+  } else if (opt.mulut === 'senyum') {
+    ctx.fillStyle = '#7a2e2e'; ctx.fillRect(x + u * 2.6, y + u * 6.3, u * 2.8, u * 0.5); ctx.fillRect(x + u * 2.3, y + u * 5.95, u * 0.45, u * 0.5); ctx.fillRect(x + u * 5.25, y + u * 5.95, u * 0.45, u * 0.5);
+  } else { ctx.fillStyle = '#7a2e2e'; ctx.fillRect(x + u * 3, y + u * 6.3, u * 2, u * 0.6); }
 }
 
 // Foto KTP: kepala + bahu.
