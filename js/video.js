@@ -12,7 +12,16 @@ const ambil = async f => (await fetch(`${DIR}/${f}`, { cache: 'no-store' })).jso
 const NASKAH = await ambil('naskah.json');
 const TL = await ambil('timeline.json');
 const FPS = TL.fps, N = Math.round(TL.durasi * FPS);
-const SEG = TL.segmen.map((s, i) => Object.assign({}, s, NASKAH.baris[i]));
+// Subtitle = persis yang diucapkan (ejaan mesin suara dirapikan); kata kunci dikapital agar disorot.
+const SOROT = ['warga', 'ktp', 'follow', 'komen', 'like'];
+function rapikan(tts) {
+  return tts.replace(/Sidoarjo Vers/g, 'SidoarjoVerse').replace(/P\. O\. V\./g, 'POV').replace(/\.\.\./g, '…')
+    .split(' ').map(k => SOROT.includes(k.replace(/[^A-Za-z]/g, '').toLowerCase()) ? k.toUpperCase() : k).join(' ');
+}
+const SEG = TL.segmen.map((s, i) => {
+  const b = NASKAH.baris[i];
+  return Object.assign({}, s, b, { cap: b.subtitle_khusus ? s.cap : rapikan(b.tts) });
+});
 const n = SEG.length;
 const mulai = i => (i === 0 ? 0 : SEG[i - 1].start + SEG[i - 1].dur);          // adegan i mulai saat baris sebelumnya selesai
 const selesai = i => (i === n - 1 ? TL.durasi : mulai(i + 1));
@@ -134,17 +143,30 @@ function kartu(cx, cy, w, h, s, isi, { bg = '#ffffff', tepi = TEAL } = {}) {
 }
 function proyeksi(p) { const v = p.clone().project(camera); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H]; }
 
-// subtitle per 3–5 kata, waktunya mengikuti panjang huruf
+// subtitle per 3–5 kata. Waktunya hanya berjalan saat suara terdengar (jeda dilewati), sesuai panjang huruf.
+function bagianBersuara(sg) {
+  const f0 = Math.floor(sg.start * FPS), f1 = Math.ceil((sg.start + sg.dur) * FPS);
+  const iv = []; let a = null, diam = 0;
+  for (let f = f0; f <= f1; f++) {
+    const on = (TL.amp[f] || 0) > 0.06;
+    if (on) { if (a === null) a = f; diam = 0; }
+    else if (a !== null && ++diam > 6) { iv.push([a / FPS, (f - diam + 1) / FPS]); a = null; diam = 0; }
+  }
+  if (a !== null) iv.push([a / FPS, f1 / FPS]);
+  return iv.length ? iv : [[sg.start, sg.start + sg.dur]];
+}
 const potongan = SEG.map(sg => {
   const kata = sg.cap.split(' '); const chunk = []; let cur = [];
   for (const k of kata) {
     if (cur.length && (cur.join(' ') + ' ' + k).length > 22) { chunk.push(cur.join(' ')); cur = []; }
     cur.push(k);
-    if (/[.!?…,:—]$/.test(k) && cur.join(' ').length >= 8) { chunk.push(cur.join(' ')); cur = []; }
+    if (/[.!?]$/.test(k) || (/[…,:—]$/.test(k) && cur.join(' ').length >= 8)) { chunk.push(cur.join(' ')); cur = []; }
   }
   if (cur.length) chunk.push(cur.join(' '));
-  const tot = chunk.reduce((a, x) => a + x.length, 0); let t0 = sg.start;
-  return chunk.map(x => { const d = sg.dur * x.length / tot; const r = { t0, t1: t0 + d, x }; t0 += d; return r; });
+  const iv = bagianBersuara(sg), total = iv.reduce((x, [a, b]) => x + b - a, 0);
+  const waktu = frac => { let sisa = frac * total; for (const [a, b] of iv) { if (sisa <= b - a) return a + sisa; sisa -= b - a; } return iv[iv.length - 1][1]; };
+  const tot = chunk.reduce((a, x) => a + x.length, 0); let acc = 0;
+  return chunk.map(x => { const r = { t0: waktu(acc / tot), t1: waktu((acc + x.length) / tot), x }; acc += x.length; return r; });
 }).flat();
 function subtitle(t) {
   const p = potongan.find(p => t >= p.t0 - 0.05 && t < p.t1 + 0.12);
