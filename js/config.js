@@ -3,7 +3,7 @@
 // Isi dengan Project URL & anon public key dari Supabase (Settings > API)
 // supaya KTP warga dan perubahan admin tersimpan online untuk semua orang.
 export const CONFIG = {
-  SUPABASE_URL: '',
+  SUPABASE_URL: 'https://jjxsenlvrrgbuzbkbqfk.supabase.co',
   SUPABASE_ANON_KEY: '',
   KOTA_ID: 'sidoarjo',
   // Hanya untuk mode demo. Di mode Supabase, admin login dengan email & password Supabase.

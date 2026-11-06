@@ -19,11 +19,10 @@ function acakKode() {
 }
 
 async function rest(path, opt = {}, token) {
-  const headers = Object.assign({
-    apikey: CONFIG.SUPABASE_ANON_KEY,
-    Authorization: 'Bearer ' + (token || CONFIG.SUPABASE_ANON_KEY),
-    'Content-Type': 'application/json',
-  }, opt.headers || {});
+  // apikey saja sudah cukup untuk pengunjung (berlaku untuk key lama "anon" maupun baru "sb_publishable_").
+  // Authorization hanya dikirim untuk admin yang sudah login.
+  const headers = Object.assign({ apikey: CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    token && token !== 'demo' ? { Authorization: 'Bearer ' + token } : {}, opt.headers || {});
   const r = await fetch(CONFIG.SUPABASE_URL.replace(/\/$/, '') + path, Object.assign({}, opt, { headers, cache: 'no-store' }));
   if (!r.ok) {
     let msg = r.status + '';
