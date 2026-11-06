@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { makeCakDarjo, buatAkuarium } from './world.js';
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -34,7 +34,7 @@ function render() {
 const solo = buatAkuarium(); solo.group.visible = false; solo.group.scale.setScalar(2.2); solo.group.position.y = 1.0; scene.add(solo.group);
 window.studio = {
   akuarium(on) { solo.group.visible = on; darjo.visible = !on; solo.tick(view.t); render(); },
-  set(v) { Object.assign(view, v); if (v.bg) scene.background.set(v.bg); lantai.visible = v.lantai !== false; render(); },
+  set(v) { Object.assign(view, v); if (v.bg === 'transparan') scene.background = null; else if (v.bg) { scene.background = scene.background || new THREE.Color(); scene.background.set(v.bg); } lantai.visible = v.lantai !== false; render(); },
   ekspresi(m) { darjo.userData.ekspresi(m); render(); },
   lambai(on) { const arm = darjo.children.find(c => c.isGroup && c.position.x > 0.3 && c.position.y > 1.1); if (arm) { arm.rotation.set(on ? 0 : -0.95, 0, on ? 2.5 : -0.55); } render(); },
   render,
