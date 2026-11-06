@@ -184,3 +184,23 @@ button { font: inherit; cursor: pointer; }
 .btn.kecilv { padding: 8px 14px; font-size: 14px; }
 @media (max-width: 380px) { .tab .lbl { font-size: 9.5px; } .tab .ic { font-size: 18px; padding: 2px 6px; } }
 @media (min-width: 900px) { .tabs { width: 700px; } }
+
+/* mode jalan-jalan */
+.cta.main { background: var(--teal); box-shadow: 0 4px 0 #082d36; }
+#mainUI[hidden] { display: none; }
+.joy { position: absolute; left: 22px; bottom: 26px; width: 128px; height: 128px; border-radius: 50%;
+  background: rgba(255,255,255,.28); border: 3px solid rgba(255,255,255,.8); box-shadow: 0 4px 14px rgba(0,0,0,.25); touch-action: none; z-index: 6; }
+.joy .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
+  background: var(--oren); border: 3px solid #fff; box-shadow: 0 3px 0 #b8611a; pointer-events: none; }
+.mainstop { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); border: 0; border-radius: 999px; background: #c62828; color: #fff;
+  font-weight: 800; padding: 9px 16px; box-shadow: 0 3px 0 #8e1c1c; z-index: 6; }
+.dekat { position: absolute; right: 16px; bottom: 40px; max-width: calc(100% - 190px); border: 2px solid var(--teal); background: var(--krem); color: var(--ink);
+  border-radius: 14px; padding: 10px 12px; font-weight: 800; box-shadow: 0 4px 0 var(--teal); z-index: 6; text-align: left; }
+.dekat small { display: block; font-weight: 600; color: var(--teal2); font-size: 12px; }
+.dekat[hidden] { display: none; }
+.mainhint { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: rgba(15,76,92,.88); color: #fff; font-size: 12px;
+  padding: 6px 12px; border-radius: 999px; white-space: nowrap; pointer-events: none; transition: opacity .6s; max-width: 94vw; overflow: hidden; text-overflow: ellipsis; }
+.mainhint.hide { opacity: 0; }
+body.bermain .hint, body.bermain .cta, body.bermain .zoom #cariCak, body.bermain .warga-card { display: none; }
+body.bermain .card { bottom: 180px; }
+@media (hover: hover) and (pointer: fine) { .joy { opacity: .85; } }

@@ -395,7 +395,7 @@ function makeAyam(r) {
 }
 
 // ---------------------------------------------------------------- dunia
-export function createWorld(canvas, { onPick } = {}) {
+export function createWorld(canvas, { onPick, onDekat } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
@@ -445,6 +445,8 @@ export function createWorld(canvas, { onPick } = {}) {
   const ayam = [];
   let kota = null, maskot = null;
   const bangunanPos = new Map();
+  let rintangan = [];   // tapak bangunan (untuk tabrakan & deteksi bangunan terdekat)
+  let pohonPos = [];    // posisi pohon (untuk tabrakan)
 
   // ---------- lingkungan statis
   function buildStatic(footprints) {
@@ -496,10 +498,12 @@ export function createWorld(canvas, { onPick } = {}) {
       return true;
     };
     let ditanam = 0;
+    pohonPos = [];
     for (let i = 0; i < 900 && ditanam < 150; i++) {
       const x = (r() - 0.5) * 64, z = (r() - 0.5) * 66;
       if (!bebas(x, z)) continue;
       pohon(pohonVB, x, z, r, (z > 17 || Math.abs(x) > 27) && r() < 0.6 ? 'kelapa' : 'biasa');
+      pohonPos.push([x, z]);
       ditanam++;
     }
     // pohon & semak di tepi sungai
@@ -530,7 +534,7 @@ export function createWorld(canvas, { onPick } = {}) {
       const rot = ((+b.rot || 0) % 360) * Math.PI / 180;
       const quarter = Math.round((+b.rot || 0) / 90) % 2 !== 0;
       const w = quarter ? T.d : T.w, d = quarter ? T.w : T.d;
-      fps.push({ x: +b.x, z: +b.z, w, d });
+      fps.push({ x: +b.x, z: +b.z, w, d, b, lewat: ['alunalun', 'lapangan'].includes(b.tipe) && b.status !== 'lahan' });
       const holder = new THREE.Group();
       holder.position.set(+b.x, 0, +b.z);
       holder.userData.pick = { jenis: 'bangunan', data: b };
@@ -604,6 +608,8 @@ export function createWorld(canvas, { onPick } = {}) {
 
   // jabatan: { [kode]: 'Ketua RT Blok A' }
   function setWarga(list, kodeSaya, jabatan = {}) {
+    const lama = pemain ? { pos: pemain.g.position.clone(), rot: pemain.g.rotation.y } : null;
+    pemain = null;
     for (const c of chars.splice(0)) charsG.remove(c.g);
     const r = rng(42);
     // maskot
@@ -621,6 +627,11 @@ export function createWorld(canvas, { onPick } = {}) {
       spawn(lookFor(w), jab ? { selempang: '#e6b422', skala: 0.68 } : {}, {
         label, labelStyle: style, jenis: 'warga', data: Object.assign({}, w, jab ? { jabatan: jab } : {}),
       }, r);
+    }
+    if (pemainKode) {
+      const c = chars.find(x => x.g.userData.pick.data && x.g.userData.pick.data.kode === pemainKode);
+      if (c) { pasangPemain(c); if (lama) { c.g.position.copy(lama.pos); c.g.rotation.y = lama.rot; } }
+      else { pemainKode = null; ikuti = null; aturKontrolMain(false); }
     }
     // ayam berkeliaran
     for (const a of ayam.splice(0)) charsG.remove(a.g);
@@ -656,6 +667,7 @@ export function createWorld(canvas, { onPick } = {}) {
   setInterval(jadwalMaskot, 30000);
 
   function stepChar(c, dt, t) {
+    if (c.dikontrol) return;
     const a = c.g.userData.anim;
     if (!c.to) {
       if (c.wait > 0) {
@@ -782,11 +794,63 @@ export function createWorld(canvas, { onPick } = {}) {
   }
   new ResizeObserver(resize).observe(canvas);
 
-  const timer = new THREE.Timer(); timer.connect(document);
   let ikuti = null;
+  // ---------- MODE JALAN-JALAN: pemilik KTP menggerakkan karakternya sendiri
+  let pemain = null, pemainKode = null, dekatId = null;
+  const masukan = { x: 0, y: 0 };
+  const _f = new THREE.Vector3();
+  function bisaDi(x, z) {
+    if (x < -31 || x > 31 || z < -31 || z > 32.5) return false;
+    if (z > RIVER[0] - 0.3 && z < RIVER[1] + 0.3 && Math.abs(x) > (kota && kota.jalan ? 1.5 : 0.85)) return false; // hanya lewat jembatan
+    for (const f of rintangan) if (!f.lewat && Math.abs(x - f.x) < f.w / 2 + 0.15 && Math.abs(z - f.z) < f.d / 2 + 0.15) return false;
+    for (const [px, pz] of pohonPos) if ((x - px) ** 2 + (z - pz) ** 2 < 0.3) return false;
+    return true;
+  }
+  function stepPemain(dt, t) {
+    const c = pemain, a = c.g.userData.anim, p = c.g.position;
+    const mag = Math.min(1, Math.hypot(masukan.x, masukan.y));
+    let jalan = false;
+    if (mag > 0.08) {
+      _f.subVectors(controls.target, camera.position); _f.y = 0; _f.normalize();
+      const dx = _f.x * -masukan.y - _f.z * masukan.x, dz = _f.z * -masukan.y + _f.x * masukan.x;
+      const l = Math.hypot(dx, dz) || 1, v = 4.2 * mag * dt;
+      const nx = p.x + dx / l * v, nz = p.z + dz / l * v;
+      const terjebak = !bisaDi(p.x, p.z);
+      if (terjebak || bisaDi(nx, nz)) { p.x = nx; p.z = nz; jalan = true; }
+      else if (bisaDi(nx, p.z)) { p.x = nx; jalan = true; }
+      else if (bisaDi(p.x, nz)) { p.z = nz; jalan = true; }
+      let df = Math.atan2(dx, dz) - c.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df));
+      c.g.rotation.y += df * Math.min(1, dt * 12);
+    }
+    const sw = jalan ? Math.sin(t * 11) * 0.7 * mag : 0;
+    a.legs[0].rotation.x = sw; a.legs[1].rotation.x = -sw; a.arms[0].rotation.x = -sw; a.arms[1].rotation.x = sw;
+    const diJembatan = Math.abs(p.x) < 1.8 && p.z > 19.9 && p.z < 26.1;
+    p.y = (diJembatan ? 0.3 : 0) + (jalan ? Math.abs(Math.cos(t * 11)) * 0.05 : 0);
+    // bangunan terdekat
+    let best = null, bd = 2;
+    for (const f of rintangan) {
+      const d = Math.hypot(Math.max(0, Math.abs(p.x - f.x) - f.w / 2), Math.max(0, Math.abs(p.z - f.z) - f.d / 2));
+      if (d < bd) { bd = d; best = f; }
+    }
+    const id = best ? (best.b.id || best.b.nama) : null;
+    if (id !== dekatId) { dekatId = id; onDekat && onDekat(best ? best.b : null); }
+  }
+  function aturKontrolMain(aktif) {
+    controls.enablePan = !aktif;
+    controls.mouseButtons = aktif ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }
+      : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+    controls.touches = aktif ? { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE } : { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  }
+  function pasangPemain(c) {
+    pemain = c; c.dikontrol = true; c.to = null; c.path = [];
+    ikuti = c.g;
+  }
+
+  const timer = new THREE.Timer(); timer.connect(document);
   renderer.setAnimationLoop(() => {
     timer.update(); const dt = Math.min(timer.getDelta(), 0.05), t = timer.getElapsed();
     for (const c of chars) stepChar(c, dt, t);
+    if (pemain) stepPemain(dt, t);
     for (const a of ayam) stepAyam(a, dt, t);
     for (const c of awanG.children) { c.position.x += c.userData.v * dt; if (c.position.x > 70) c.position.x = -70; }
     if (fokus) {
@@ -811,6 +875,7 @@ export function createWorld(canvas, { onPick } = {}) {
     setKota(k) {
       kota = k;
       const fps = buildBangunan();
+      rintangan = fps;
       buildStatic(fps);
       jadwalMaskot();
       return updateLangit();
@@ -824,7 +889,7 @@ export function createWorld(canvas, { onPick } = {}) {
     },
     fokusBangunan(id) { const p = bangunanPos.get(id); if (p) fokusKe(p.x, p.z); },
     ikuti(obj) {
-      ikuti = obj || null;
+      ikuti = obj || (pemain ? pemain.g : null);
       if (obj) { // dekatkan kamera supaya label terbaca
         const off = camera.position.clone().sub(controls.target);
         if (off.length() > 34) camera.position.copy(controls.target).add(off.setLength(34));
@@ -832,5 +897,31 @@ export function createWorld(canvas, { onPick } = {}) {
     },
     cariWarga(kode) { return chars.find(c => c.g.userData.pick.data && c.g.userData.pick.data.kode === kode); },
     maskot: () => maskot,
+    mulaiMain(kode) {
+      const c = chars.find(x => x.g.userData.pick.data && x.g.userData.pick.data.kode === kode);
+      if (!c) return false;
+      pemainKode = kode; pasangPemain(c); aturKontrolMain(true);
+      fokus = null;
+      const off = camera.position.clone().sub(controls.target);
+      off.y = 0; off.setLength(24); off.y = 21; // agak tinggi supaya tidak terhalang pohon
+      controls.target.set(c.g.position.x, 0, c.g.position.z);
+      camera.position.copy(controls.target).add(off);
+      dekatId = null;
+      return true;
+    },
+    selesaiMain() {
+      if (pemain) {
+        const k = nearestNode(pemain.g.position.x, pemain.g.position.z);
+        Object.assign(pemain, { dikontrol: false, from: k, to: null, path: [], wait: 1.5 });
+        pemain.g.position.y = 0;
+      }
+      pemain = null; pemainKode = null; ikuti = null; masukan.x = masukan.y = 0;
+      aturKontrolMain(false);
+      if (dekatId !== null) { dekatId = null; onDekat && onDekat(null); }
+    },
+    gerak(x, y) { masukan.x = x; masukan.y = y; },
+    sedangMain: () => !!pemain,
+    posisiPemain: () => pemain ? [pemain.g.position.x, pemain.g.position.z] : null,
+    bisaDi,
   };
 }

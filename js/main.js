@@ -202,9 +202,12 @@ function renderKTP() {
       catch (e) { $('kPinErr').textContent = e.message; }
     };
     $('ctaKtp').hidden = true;
+    $('btnMain').hidden = !world;
     return;
   }
   $('ctaKtp').hidden = false;
+  $('btnMain').hidden = true;
+  if (world && world.sedangMain()) berhentiMain();
   const pk = (kota.pekerjaan || []).map(p => `<option>${esc(p)}</option>`).join('');
   const kc = (kota.kecamatan || []).map(k => `<option>${esc(k)}</option>`).join('');
   v.innerHTML = `<h2>Bikin KTP Warga</h2><p class="sub">Gratis. Karaktermu akan ikut keliling kota bersama warga lain.</p>
@@ -420,7 +423,73 @@ $('zin').onclick = () => world.zoom(0.75);
 $('zout').onclick = () => world.zoom(1.33);
 $('cariCak').onclick = () => { const m = world.maskot(); if (m) { world.ikuti(m.g); onPick(m.g.userData.pick, m.g); } };
 $('ctaKtp').onclick = () => buka('ktp');
-$('map').addEventListener('pointerdown', () => { world && world.ikuti(null); const b = $('btnIkuti'); if (b) b.textContent = '🎥 Ikuti'; });
+$('map').addEventListener('pointerdown', () => { if (!world || world.sedangMain()) return; world.ikuti(null); const b = $('btnIkuti'); if (b) b.textContent = '🎥 Ikuti'; });
+
+// ---------------------------------------------------------------- mode jalan-jalan
+let dekatB = null;
+function onDekat(b) {
+  dekatB = b;
+  const el = $('dekat');
+  if (!b) { el.hidden = true; return; }
+  el.innerHTML = `📍 ${esc(b.nama)}<small>Ketuk untuk lihat info</small>`;
+  el.hidden = false;
+}
+$('dekat').onclick = () => { if (dekatB) onPick({ jenis: 'bangunan', data: dekatB }); };
+
+async function mulaiMain() {
+  if (!saya || !world) { buka('ktp'); return; }
+  let ok = world.mulaiMain(saya.kode);
+  if (!ok) { sidikWarga = ''; await refreshWarga(); ok = world.mulaiMain(saya.kode); }
+  if (!ok) { alert('Karaktermu belum muncul di peta. Coba lagi sebentar.'); return; }
+  tutupCard();
+  document.body.classList.add('bermain');
+  $('mainUI').hidden = false;
+  $('mainHint').classList.remove('hide');
+  setTimeout(() => $('mainHint').classList.add('hide'), 5000);
+}
+function berhentiMain() {
+  world.selesaiMain();
+  document.body.classList.remove('bermain');
+  $('mainUI').hidden = true;
+  onDekat(null);
+  lepasJoy();
+}
+$('btnMain').onclick = mulaiMain;
+$('mainStop').onclick = berhentiMain;
+
+// joystick layar sentuh
+const joy = $('joy'), knob = $('knob');
+let joyId = null;
+function aturJoy(e) {
+  const r = joy.getBoundingClientRect(), R = r.width / 2;
+  let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+  const l = Math.hypot(dx, dy), max = R - 10;
+  if (l > max) { dx = dx / l * max; dy = dy / l * max; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  world.gerak(dx / max, dy / max);
+}
+function lepasJoy() { joyId = null; knob.style.transform = ''; world && world.gerak(0, 0); }
+joy.addEventListener('pointerdown', e => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); aturJoy(e); e.preventDefault(); });
+joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) aturJoy(e); });
+joy.addEventListener('pointerup', lepasJoy);
+joy.addEventListener('pointercancel', lepasJoy);
+
+// keyboard (laptop): WASD / panah
+const tekan = new Set();
+const ARAH = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] };
+function aturKey() {
+  let x = 0, y = 0;
+  for (const k of tekan) { x += ARAH[k][0]; y += ARAH[k][1]; }
+  const l = Math.hypot(x, y) || 1;
+  world.gerak(x / l, y / l);
+}
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (!world || !world.sedangMain() || !ARAH[k] || /input|textarea|select/i.test(document.activeElement.tagName)) return;
+  e.preventDefault(); tekan.add(k); aturKey();
+});
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (tekan.delete(k) && world) aturKey(); });
+addEventListener('blur', () => { tekan.clear(); world && world.gerak(0, 0); });
 setTimeout(() => $('hint').classList.add('hide'), 7000);
 
 // ---------------------------------------------------------------- mulai
@@ -434,7 +503,8 @@ async function mulai() {
   }
   renderHeader();
   try {
-    world = createWorld($('map'), { onPick });
+    world = createWorld($('map'), { onPick, onDekat });
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.svWorld = world; // untuk pengujian lokal
     world.setKota(kota);
   } catch (e) {
     console.error(e);
