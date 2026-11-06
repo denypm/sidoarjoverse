@@ -1,8 +1,8 @@
-// Peta 3D blocky SidoarjoVerse (Three.js). Semua model dibuat dari kotak di kode ini, tanpa aset luar.
+// Peta 3D SidoarjoVerse (Three.js): kota low-poly + karakter bulat. Semua model dibuat di kode ini, tanpa aset luar.
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.js';
-import { lookFor, drawFace } from './avatar.js';
+import { lookFor } from './avatar.js';
 
 // ---------------------------------------------------------------- material & builder
 const UNIT = new THREE.BoxGeometry(1, 1, 1);
@@ -23,19 +23,23 @@ function mat(k) {
 }
 
 // Voxel Builder: kumpulkan kotak per warna lalu gabung jadi sedikit mesh (ringan di HP).
+const BOLA_LP = new THREE.IcosahedronGeometry(0.5, 1); // bola low-poly (pohon, semak)
 class VB {
   constructor() { this.parts = new Map(); }
+  _add(c, m, geo) { let l = this.parts.get(c); if (!l) { l = []; this.parts.set(c, l); } l.push([m, geo]); return this; }
   // x,z = pusat, y = dasar kotak
   box(x, y, z, w, h, d, c) {
-    const m = new THREE.Matrix4().makeScale(w, h, d).setPosition(x, y + h / 2, z);
-    let l = this.parts.get(c); if (!l) { l = []; this.parts.set(c, l); }
-    l.push(m);
-    return this;
+    return this._add(c, new THREE.Matrix4().makeScale(w, h, d).setPosition(x, y + h / 2, z), UNIT);
+  }
+  // bola low-poly: x,z = pusat, y = dasar
+  bola(x, y, z, w, h, d, c) {
+    return this._add(c, new THREE.Matrix4().makeScale(w, h, d).setPosition(x, y + h / 2, z), BOLA_LP);
   }
   build({ shadow = true } = {}) {
     const g = new THREE.Group();
     for (const [c, list] of this.parts) {
-      const geos = list.map(m => UNIT.clone().applyMatrix4(m));
+      const campur = list.some(([, geo]) => geo !== UNIT);
+      const geos = list.map(([m, geo]) => { const x = geo.clone().applyMatrix4(m); return campur && x.index ? x.toNonIndexed() : x; });
       const geo = mergeGeometries(geos, false);
       geos.forEach(x => x.dispose());
       const mesh = new THREE.Mesh(geo, mat(c));
@@ -146,10 +150,10 @@ function pohon(vb, x, z, r, tipe) {
     return;
   }
   const h = 1 + r() * 0.8, s = 1.6 + r() * 0.9;
-  const hijau = ['#3e8e41', '#4caf50', '#2e7d32', '#5aa65a'][Math.floor(r() * 4)];
-  vb.box(x, 0, z, 0.4, h, 0.4, '#7a5230');
-  vb.box(x, h, z, s, s * 0.8, s, hijau);
-  vb.box(x, h + s * 0.8, z, s * 0.65, s * 0.5, s * 0.65, hijau);
+  const hijau = ['#4caf50', '#5bbd5a', '#43a047', '#66bb6a'][Math.floor(r() * 4)];
+  vb.box(x, 0, z, 0.32, h + 0.3, 0.32, '#8a5a32');
+  vb.bola(x, h - 0.1, z, s, s * 0.95, s, hijau);
+  vb.bola(x + s * 0.18, h + s * 0.45, z - s * 0.1, s * 0.7, s * 0.65, s * 0.7, hijau);
 }
 
 function rumah(vb, x, z, c, r, rot = 0) {
@@ -351,54 +355,109 @@ export const TIPE = {
 };
 
 // ---------------------------------------------------------------- karakter
+// ---- karakter bulat menggemaskan (chibi): kepala besar bulat, badan oval seperti telur
+const GEO = {
+  bola: new THREE.SphereGeometry(0.5, 28, 20),
+  bolaKecil: new THREE.SphereGeometry(0.5, 14, 10),
+  kapsul: new THREE.CapsuleGeometry(0.5, 1, 6, 12),
+  tabung: new THREE.CylinderGeometry(0.5, 0.5, 1, 24),
+};
+const MATS_HALUS = new Map();
+function matHalus(c) { // material sedikit mengilap untuk karakter
+  let m = MATS_HALUS.get(c);
+  if (!m) { m = new THREE.MeshPhongMaterial({ color: c, shininess: 18, specular: '#2a2a2a' }); MATS_HALUS.set(c, m); }
+  return m;
+}
 function makeChar(look, opt = {}) {
   const g = new THREE.Group();
-  const M = c => mat(c);
-  const part = (w, h, d, c, y, parent = g, x = 0, z = 0) => {
-    const m = new THREE.Mesh(UNIT, M(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m;
+  const M = matHalus;
+  const mesh = (geo, c, sx, sy, sz, x, y, z, parent = g) => {
+    const m = new THREE.Mesh(geo, M(c)); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m;
   };
   const baju = opt.baju || look.baju, celana = opt.celana || look.celana;
   const legs = [], arms = [];
+  // kaki pendek gemuk
   for (const s of [-0.17, 0.17]) {
-    const p = new THREE.Group(); p.position.set(s, 0.72, 0); g.add(p);
-    part(0.3, 0.6, 0.32, celana, -0.32, p); part(0.32, 0.14, 0.38, '#2b2b2b', -0.65, p, 0, 0.03);
+    const p = new THREE.Group(); p.position.set(s, 0.5, 0); g.add(p);
+    mesh(GEO.kapsul, celana, 0.22, 0.2, 0.22, 0, -0.2, 0, p);
+    mesh(GEO.bolaKecil, '#2b2b2b', 0.26, 0.16, 0.34, 0, -0.42, 0.05, p);
     legs.push(p);
   }
-  part(0.72, 0.78, 0.42, baju, 1.1);
-  if (opt.selempang) part(0.74, 0.12, 0.44, opt.selempang, 1.2);
-  for (const s of [-0.48, 0.48]) {
-    const p = new THREE.Group(); p.position.set(s, 1.42, 0); g.add(p);
-    part(0.24, 0.5, 0.28, baju, -0.2, p); part(0.22, 0.26, 0.26, look.kulit, -0.56, p);
+  // badan telur
+  const badan = mesh(GEO.bola, baju, 0.86, 0.98, 0.76, 0, 0.92, 0);
+  if (opt.selempang) { // selempang diagonal: dari bahu kiri ke pinggang kanan, menempel di badan
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.045, 8, 40), M(opt.selempang));
+    t.rotation.order = 'ZYX'; t.rotation.set(0, Math.PI / 2, 0.85);
+    t.scale.set(0.9, 1.04, 1); t.position.set(0, 0.93, 0); g.add(t);
+  }
+  // kancing kecil
+  if (!opt.akuarium) for (const y of [1.05, 0.88]) mesh(GEO.bolaKecil, '#ffffff', 0.05, 0.05, 0.03, 0, y, 0.37);
+  // lengan pendek + tangan bulat
+  for (const s of [-1, 1]) {
+    const p = new THREE.Group(); p.position.set(s * 0.38, 1.18, 0); g.add(p);
+    const l = mesh(GEO.kapsul, baju, 0.15, 0.17, 0.15, s * 0.04, -0.17, 0, p); l.rotation.z = s * 0.25;
+    mesh(GEO.bola, look.kulit, 0.16, 0.16, 0.16, s * 0.09, -0.36, 0, p);
     arms.push(p);
   }
-  // kepala: tekstur wajah di sisi depan (+z). Disiapkan 3 ekspresi mulut (untuk video bicara).
-  const wajah = {};
-  for (const m of ['diam', 'buka', 'senyum']) {
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    drawFace(cv.getContext('2d'), 0, 0, 128, look, Object.assign({}, opt, { mulut: m }));
-    const tx = canvasTex(cv); tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter;
-    wajah[m] = tx;
+  // kepala besar bulat
+  const head = new THREE.Group(); head.position.set(0, 1.8, 0); g.add(head);
+  mesh(GEO.bola, look.kulit, 1.0, 0.94, 0.94, 0, 0, 0, head);
+  for (const s of [-1, 1]) mesh(GEO.bolaKecil, look.kulit, 0.14, 0.2, 0.1, s * 0.5, -0.02, 0, head); // telinga
+  // rambut / kerudung
+  if (look.kerudung) {
+    const k = new THREE.Mesh(new THREE.SphereGeometry(0.545, 28, 20, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, 0, Math.PI * 0.82), M(look.kerudung));
+    k.scale.set(1, 0.97, 0.97); k.castShadow = true; head.add(k);
+    mesh(GEO.bola, look.kerudung, 0.9, 0.5, 0.75, 0, -0.42, -0.05, head);
+  } else {
+    const r = new THREE.Mesh(new THREE.SphereGeometry(0.515, 28, 20, 0, Math.PI * 2, 0, opt.peci ? 1.25 : 1.15), M(look.rambut));
+    r.rotation.x = -0.32; r.scale.set(1, 0.95, 0.96); head.add(r);
+    if (look.rambutPanjang) mesh(GEO.bola, look.rambut, 0.92, 0.95, 0.6, 0, -0.12, -0.2, head);
   }
-  const ft = wajah[opt.mulutAwal || 'diam'];
-  const atas = look.kerudung || look.rambut;
-  const sisi = look.kerudung || look.kulit;
-  const head = new THREE.Mesh(UNIT, [M(sisi), M(sisi), M(atas), M(look.kulit), new THREE.MeshLambertMaterial({ map: ft }), M(look.kerudung || look.rambut)]);
-  head.scale.set(0.72, 0.72, 0.72); head.position.y = 1.86; head.castShadow = true; g.add(head);
-  if (opt.peci) { part(0.7, 0.2, 0.62, '#151515', 2.31); part(0.705, 0.035, 0.625, '#3a3a3a', 2.24); }
-  if (look.rambutPanjang && !look.kerudung) part(0.74, 0.6, 0.2, look.rambut, 1.75, g, 0, -0.32);
+  if (opt.peci) {
+    const pc = mesh(GEO.tabung, '#151515', 0.66, 0.22, 0.56, 0, 0.42, -0.02, head); pc.rotation.x = -0.12;
+    const pb = mesh(GEO.tabung, '#3a3a3a', 0.665, 0.03, 0.565, 0, 0.33, -0.01, head); pb.rotation.x = -0.12;
+  }
+  // wajah (geometri, bukan tekstur). Setiap fitur ditempel tepat di permukaan kepala.
+  const muka = new THREE.Group(); muka.position.set(0, -0.02, 0); head.add(muka);
+  const zs = (x, y, off = 0) => 0.47 * Math.sqrt(Math.max(0, 1 - (x / 0.5) ** 2 - ((y - 0.02) / 0.47) ** 2)) + off;
+  const hitam = '#1b1b1b';
+  for (const s of [-1, 1]) {
+    mesh(GEO.bolaKecil, hitam, 0.13, 0.17, 0.06, s * 0.16, 0.05, zs(s * 0.16, 0.05, -0.008), muka);              // mata
+    mesh(GEO.bolaKecil, '#ffffff', 0.045, 0.05, 0.02, s * 0.16 + 0.025, 0.09, zs(s * 0.16, 0.09, 0.016), muka);   // kilau mata
+    mesh(GEO.bolaKecil, '#f08a8a', 0.13, 0.07, 0.03, s * 0.26, -0.1, zs(s * 0.26, -0.1, -0.012), muka);         // pipi merona
+    const al = mesh(GEO.kapsul, opt.peci ? '#1a1a1a' : look.rambut, 0.03, 0.07, 0.03, s * 0.16, 0.2, zs(s * 0.16, 0.2, -0.004), muka);
+    al.rotation.z = Math.PI / 2 + s * 0.12;                                                                    // alis
+  }
+  mesh(GEO.bolaKecil, gelap(look.kulit), 0.09, 0.08, 0.07, 0, -0.06, zs(0, -0.06, -0.012), muka);              // hidung
+  if (look.kumis || opt.kumis) {
+    for (const s of [-1, 1]) { const k = mesh(GEO.kapsul, '#2a1a10', 0.05, 0.06, 0.05, s * 0.08, -0.14, zs(s * 0.08, -0.14, -0.006), muka); k.rotation.z = Math.PI / 2 + s * 0.35; }
+  }
+  if (look.kacamata) for (const s of [-1, 1]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.014, 6, 18), M('#333333')); t.position.set(s * 0.16, 0.05, zs(s * 0.16, 0.05, 0.02)); muka.add(t); }
+  const mulut = {
+    diam: mesh(GEO.kapsul, '#6b2424', 0.03, 0.05, 0.02, 0, -0.24, zs(0, -0.24, -0.004), muka),
+    buka: mesh(GEO.bolaKecil, '#4a1414', 0.13, 0.11, 0.05, 0, -0.25, zs(0, -0.25, -0.014), muka),
+    senyum: new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.016, 6, 16, Math.PI), M('#6b2424')),
+  };
+  mulut.diam.rotation.z = Math.PI / 2;
+  mulut.senyum.rotation.z = Math.PI; mulut.senyum.position.set(0, -0.2, zs(0, -0.22, -0.012)); muka.add(mulut.senyum);
+  const awal = opt.mulutAwal || (opt.akuarium ? 'senyum' : 'diam');
+  for (const [k, m] of Object.entries(mulut)) m.visible = k === awal;
+  head.castShadow = true;
   g.userData.anim = { legs, arms, head };
-  g.userData.ekspresi = m => { if (wajah[m]) { head.material[4].map = wajah[m]; head.material[4].needsUpdate = true; } };
+  g.userData.ekspresi = m => { if (mulut[m]) for (const [k, x] of Object.entries(mulut)) x.visible = k === m; };
   if (opt.akuarium) {
-    // kedua tangan memegang akuarium di depan dada; ayunan tangan saat berjalan dimatikan
-    for (const [i, a] of arms.entries()) { a.rotation.x = -1.0; a.rotation.z = i ? -0.4 : 0.4; }
+    // kedua tangan memegang akuarium di depan perut; ayunan tangan saat berjalan dimatikan
+    arms.forEach((a, i) => { const s = i ? 1 : -1; a.rotation.set(-0.95, 0, -s * 0.55); });
     g.userData.anim.arms = [new THREE.Object3D(), new THREE.Object3D()];
     const ak = buatAkuarium();
-    ak.group.position.set(0, 0.98, 0.6);
+    ak.group.scale.setScalar(0.78);
+    ak.group.position.set(0, 0.86, 0.55);
     g.add(ak.group);
     g.userData.tick = ak.tick;
   }
   return g;
 }
+function gelap(hex) { const c = new THREE.Color(hex); c.multiplyScalar(0.86); return '#' + c.getHexString(); }
 
 // Ikon Cak Darjo: akuarium bundar berisi bandeng & udang (khas Kota Delta)
 export function buatAkuarium() {
@@ -581,7 +640,7 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
       ditanam++;
     }
     // pohon & semak di tepi sungai
-    for (let x = -30; x <= 30; x += 3.3) { if (Math.abs(x) < 3) continue; if (r() < 0.5) pohon(pohonVB, x, RIVER[0] - 0.9, r, 'kelapa'); else pohonVB.box(x, 0, RIVER[0] - 0.8, 0.9, 0.6, 0.9, '#4f9a45'); }
+    for (let x = -30; x <= 30; x += 3.3) { if (Math.abs(x) < 3) continue; if (r() < 0.5) pohon(pohonVB, x, RIVER[0] - 0.9, r, 'kelapa'); else pohonVB.bola(x, 0, RIVER[0] - 0.8, 1.1, 0.8, 1.1, '#4f9a45'); }
     statik.add(pohonVB.build());
 
     // awan
@@ -589,7 +648,7 @@ export function createWorld(canvas, { onPick, onDekat } = {}) {
     for (let i = 0; i < 9; i++) {
       const vb = new VB();
       const n = 3 + Math.floor(r() * 3);
-      for (let k = 0; k < n; k++) vb.box(k * 1.8 - n, r() * 0.6, (r() - 0.5) * 2, 2.6 + r() * 1.5, 1.2 + r(), 2.2 + r() * 1.2, '#ffffff');
+      for (let k = 0; k < n; k++) vb.bola(k * 1.8 - n, r() * 0.6, (r() - 0.5) * 2, 2.8 + r() * 1.5, 1.6 + r(), 2.4 + r() * 1.2, '#ffffff');
       const c = vb.build({ shadow: false });
       c.position.set((r() - 0.5) * 140, 40 + r() * 10, (r() - 0.5) * 110); c.scale.setScalar(0.8);
       c.userData.v = 0.4 + r() * 0.6;

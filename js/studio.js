@@ -36,7 +36,7 @@ window.studio = {
   akuarium(on) { solo.group.visible = on; darjo.visible = !on; solo.tick(view.t); render(); },
   set(v) { Object.assign(view, v); if (v.bg) scene.background.set(v.bg); lantai.visible = v.lantai !== false; render(); },
   ekspresi(m) { darjo.userData.ekspresi(m); render(); },
-  lambai(on) { const arm = darjo.children.find(c => c.isGroup && c.position.x > 0.4 && c.position.y > 1.3); if (arm) { arm.rotation.set(on ? 0 : -1.05, 0, on ? 2.6 : 0.28); } render(); },
+  lambai(on) { const arm = darjo.children.find(c => c.isGroup && c.position.x > 0.3 && c.position.y > 1.1); if (arm) { arm.rotation.set(on ? 0 : -0.95, 0, on ? 2.5 : -0.55); } render(); },
   render,
 };
 addEventListener('resize', render);
