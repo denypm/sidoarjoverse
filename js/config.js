@@ -4,7 +4,7 @@
 // supaya KTP warga dan perubahan admin tersimpan online untuk semua orang.
 export const CONFIG = {
   SUPABASE_URL: 'https://jjxsenlvrrgbuzbkbqfk.supabase.co',
-  SUPABASE_ANON_KEY: '',
+  SUPABASE_ANON_KEY: 'sb_publishable_V_yLt6Mr6NbCADUevdieHg_rNsGJC1a',
   KOTA_ID: 'sidoarjo',
   // Hanya untuk mode demo. Di mode Supabase, admin login dengan email & password Supabase.
   DEMO_ADMIN_PASSWORD: 'admin',
