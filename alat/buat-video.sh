@@ -4,7 +4,7 @@
 set -e
 DIR=${1%/}; NAMA=$(basename "$DIR")
 cd "$(dirname "$0")/.."
-python3 alat/suara.py "$DIR"
+python3 alat/suara.py "$DIR" ${SUARA_OPSI:-}
 pgrep -f "http.server 8080" >/dev/null || (timeout 3600 python3 -m http.server 8080 >/dev/null 2>&1 &); sleep 1
 node alat/render.js "$DIR"
 python3 alat/audio.py "$DIR"

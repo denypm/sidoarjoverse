@@ -5,7 +5,9 @@ N = json.load(open('naskah.json')); B = N['baris']
 VOICE = N.get('suara', 'pNInz6obpgDQGcFmaJgB')  # default: Adam
 FPS, SR = 30, 44100
 ulang = '--ulang' in sys.argv
+rekaman = '--rekaman' in sys.argv   # pakai vo01.wav dst. yang sudah ada (rekaman sendiri), tanpa TTS
 for i, b in enumerate(B, 1):
+    if rekaman: continue
     mp3, wav = f'vo{i:02d}.mp3', f'vo{i:02d}.wav'
     if ulang or not os.path.exists(mp3) or json.load(open('.tts_cache.json')).get(str(i)) != b['tts'] if os.path.exists('.tts_cache.json') else True:
         body = {"text": b['tts'], "model_id": "eleven_multilingual_v2",
