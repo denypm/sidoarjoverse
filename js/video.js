@@ -62,12 +62,12 @@ const popS = (t, t0, d = 0.28) => { const x = (t - t0) / d; if (x <= 0) return 0
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ------------------------------------------------------------ kamera: setiap jenis = titik awal → akhir
-const LIHAT_D = V(0, 1.45, 0.6);
+const LIHAT_D = V(0, 1.95, 0.6);   // tinggi wajah Cak Darjo (gaya figur premium)
 function bidikan(jenis, sebelum) {
-  const sb = sebelum || { pos: V(0, 1.75, 4.6), look: LIHAT_D.clone() };
+  const sb = sebelum || { pos: V(0, 2.1, 4.6), look: LIHAT_D.clone() };
   const [j, arg] = String(jenis || 'closeup').split(':');
   switch (j) {
-    case 'medium': return { a: { pos: V(0.4, 1.65, 6.0), look: V(0, 1.3, 0.6) }, b: { pos: V(0.9, 1.65, 5.5), look: V(0, 1.3, 0.6) }, e: ease };
+    case 'medium': return { a: { pos: V(0.4, 1.95, 6.6), look: V(0, 1.6, 0.6) }, b: { pos: V(0.9, 1.95, 6.1), look: V(0, 1.6, 0.6) }, e: ease };
     case 'mundur': return { a: sb, b: { pos: V(9, 13, 21), look: V(0, 0.4, -5) }, e: easeOut };
     case 'udara': return { a: { pos: V(9, 13, 21), look: V(0, 0.4, -5) }, b: { pos: V(-5, 15, 21), look: V(-2, 0, -7) }, e: ease };
     case 'atas': return { a: { pos: V(lahanB.x + 4, 9, lahanB.z + 12), look: V(lahanB.x + 2, 0, lahanB.z + 3) }, b: { pos: V(+lahanB.x, 25, lahanB.z + 11), look: V(+lahanB.x, 0, +lahanB.z) }, e: easeOut };
@@ -76,7 +76,7 @@ function bidikan(jenis, sebelum) {
       const b = kota.bangunan.find(x => x.id === arg) || lahanB;
       return { a: { pos: V(+b.x + 10, 9, +b.z + 12), look: V(+b.x, 1, +b.z) }, b: { pos: V(+b.x + 6, 6, +b.z + 9), look: V(+b.x, 1.2, +b.z) }, e: ease };
     }
-    default: return { a: { pos: V(0, 1.75, 4.9), look: LIHAT_D.clone() }, b: { pos: V(0, 1.72, 4.1), look: LIHAT_D.clone() }, e: ease }; // closeup
+    default: return { a: { pos: V(0, 2.2, 5.6), look: LIHAT_D.clone() }, b: { pos: V(0, 2.18, 4.9), look: LIHAT_D.clone() }, e: ease }; // closeup
   }
 }
 const SHOT = []; { let prev = null; for (const s of SEG) { const b = bidikan(s.kamera, prev); SHOT.push(b); prev = b.b; } }
@@ -93,8 +93,9 @@ function animDarjo(t, f) {
   const amp = TL.amp[Math.min(f, TL.amp.length - 1)] || 0;
   const i = segPada(t), s = SEG[i];
   const bicara = t >= s.start && t <= s.start + s.dur;
-  const diam = s.pose === 'senyum' ? 'senyum' : 'senyum';
-  darjo.userData.ekspresi(bicara ? (amp > 0.28 ? 'buka' : amp > 0.1 ? 'diam' : diam) : 'senyum');
+  // ekspresi dasar per baris (naskah: "ekspresi"), mulut ikut suara saat bicara
+  darjo.userData.ekspresi(s.ekspresi || (s.pose === 'senyum' ? 'senang' : 'normal'));
+  if (bicara && amp > 0.1) darjo.userData.ekspresi(amp > 0.28 ? 'buka' : 'diam');
   const head = darjo.userData.anim.head;
   head.rotation.z = Math.sin(t * 2.1) * 0.04 + (bicara ? Math.sin(t * 7) * amp * 0.05 : 0);
   head.rotation.x = bicara ? -amp * 0.06 : 0;

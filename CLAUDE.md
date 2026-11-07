@@ -10,16 +10,22 @@ Bahasa komunikasi dengan pemilik: **Bahasa Indonesia**, santai dan jelas (pemili
 - Event bertahap sesuai follower: 1.000 = Pemilihan Ketua RT, 3.000 = Camat Verse, 5.000 = sponsor/ruko mitra, 10.000 = Wakil Kepala Kota.
 - Tetap fiktif & sopan: tanpa politik nyata, SARA, nama pejabat/merek asli. Jangan meniru karakter/nama/kalimat akun lain (mis. @sekolahbebaz): hanya format yang boleh mirip.
 
-## Cak Darjo (WAJIB konsisten)
+## Cak Darjo (WAJIB konsisten), desain Gen Z (sejak 7 Nov 2026)
 Dibuat oleh `makeCakDarjo()` di `js/world.js` (satu sumber untuk website, video, gambar). Jangan buat versi lain.
-Kepala bulat besar, badan oval (chibi), peci hitam, kumis, pipi merona, **batik lengan panjang motif udang-bandeng teal**,
-selempang oranye, **jam tangan emas** di kiri, **selalu membawa akuarium bundar (1 bandeng + 1 udang)**. Tanpa kacamata.
+Gaya "figur premium": kepala bulat, tubuh proporsional & ramping, material matte. Rambut textured crop berponi, **kacamata bulat**,
+kulit terang (`#ecc39b`), **kaos putih + kemeja batik udang-bandeng terbuka berkancing** (warna `navy`; pilihan lain: sage/lilac/biru di `PALET_BATIK`),
+celana gelap, **sneakers putih**, **jam tangan emas** (kiri), **tongkat komando** (tangan kiri). Tanpa peci, tanpa kumis, tanpa selempang, tanpa akuarium.
+Ekspresi (`EKSPRESI`): normal, senang (tertawa + gigi), nyengir, skeptis, marah, sedih, kaget, bosan, panik, tidur. Dipakai per baris naskah: `"ekspresi": "senang"`.
 Sifat ramah, lucu, sedikit ngenes. Bicara Indonesia + Suroboyoan ringan ("rek", "sampeyan", "sesuk tak bangun").
+
+## Gaya visual (premium)
+Tone mapping ACES, cahaya hangat + bayangan lembut, langit bergradasi + kabut, palet pastel; rumput/bunga/batu instanced, pohon & awan low-poly bersegi.
+Mode ringan otomatis untuk HP (`RINGAN` di `createWorld`). Papan pengumuman di peta (`kota.papan`, diatur Admin → Umum).
 
 ## Membuat video (alur standar)
 1. Pemilik mengirim tabel script (dari ChatGPT) atau ide → ubah ke `video/<nama>/naskah.json`
    (format: lihat contoh di bawah; kamera: closeup | medium | mundur | udara | atas | ayam | bangunan:<id>;
-   pose: bicara | senyum | melambai | menoleh; stiker: pil, papan, judul, kartu_teks, ide, lahan, aturan, stempel, follow, url, komen, konfeti;
+   pose: bicara | senyum | melambai | menoleh; ekspresi: lihat daftar di atas; stiker: pil, papan, judul, kartu_teks, ide, lahan, aturan, stempel, follow, url, komen, konfeti;
    sfx: pop | whoosh | krik | tada | stempel).
 2. `bash alat/buat-video.sh video/<nama>` → suara ElevenLabs + render 1080×1920 + audio + `SidoarjoVerse-<nama>.mp4` + `cover.jpg`.
    Rekaman suara dari pemilik: potong per baris jadi `vo01.wav…`, lalu `SUARA_OPSI=--rekaman bash alat/buat-video.sh video/<nama>`.

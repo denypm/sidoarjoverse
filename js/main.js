@@ -57,6 +57,7 @@ function statusChip(b) {
 }
 
 function kartuBangunan(b) {
+  if (b.papan) return `<div class="lab" style="color:var(--teal2);font-weight:800;font-size:12px">📌 PAPAN PENGUMUMAN</div><h3>${esc(b.nama)}</h3><p style="white-space:pre-line;font-size:15px;line-height:1.5">${esc(b.ket)}</p>`;
   const p = b.status === 'selesai' ? 100 : (+b.progres || 0);
   return `<h3>${esc(b.nama)}</h3>${statusChip(b)}
     ${b.status !== 'lahan' ? `<div class="bar"><i style="width:${p}%"></i></div><div class="meta">Progres ${p}%</div>` : ''}

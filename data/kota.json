@@ -90,5 +90,10 @@
     "Gedangan",
     "Sedati",
     "Sukodono"
-  ]
+  ],
+  "papan": {
+    "tampil": true,
+    "judul": "PENGUMUMAN",
+    "isi": "Selamat datang di SidoarjoVerse!\nFollow = jadi warga\nKomen like terbanyak = besok dibangun\nBikin KTP-mu di tab KTP"
+  }
 }

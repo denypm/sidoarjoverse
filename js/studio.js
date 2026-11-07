@@ -1,24 +1,26 @@
 // Studio: render Cak Darjo (dan nanti adegan video) dengan kamera yang bisa diatur dari luar.
 import * as THREE from 'three';
-import { makeCakDarjo, buatAkuarium } from './world.js';
+import { makeCakDarjo, buatAkuarium, EKSPRESI } from './world.js';
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.enabled = true;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#fff8ec');
 const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-scene.add(new THREE.HemisphereLight('#ffffff', '#b9a789', 1.4));
-const sun = new THREE.DirectionalLight('#fff4dc', 2.0);
+scene.add(new THREE.HemisphereLight('#e4eef2', '#9a9070', 1.6));
+const sun = new THREE.DirectionalLight('#ffe3bd', 2.5);
 sun.position.set(3, 6, 5); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3 });
 scene.add(sun);
-const lantai = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.12, 6), new THREE.MeshLambertMaterial({ color: '#8fcb63' }));
+const lantai = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.12, 6), new THREE.MeshStandardMaterial({ color: '#a7bc6b', roughness: 0.95, flatShading: true }));
 lantai.position.y = -0.06; lantai.receiveShadow = true; scene.add(lantai);
 
-const darjo = makeCakDarjo();
+let darjo = makeCakDarjo();
 scene.add(darjo);
 
 const view = { az: 0, el: 8, dist: 6, ty: 1.25, t: 0 };
@@ -33,10 +35,13 @@ function render() {
 }
 const solo = buatAkuarium(); solo.group.visible = false; solo.group.scale.setScalar(2.2); solo.group.position.y = 1.0; scene.add(solo.group);
 window.studio = {
+  tinggi: () => 2.62,
+  daftarEkspresi: () => Object.keys(EKSPRESI),
   akuarium(on) { solo.group.visible = on; darjo.visible = !on; solo.tick(view.t); render(); },
   set(v) { Object.assign(view, v); if (v.bg === 'transparan') scene.background = null; else if (v.bg) { scene.background = scene.background || new THREE.Color(); scene.background.set(v.bg); } lantai.visible = v.lantai !== false; render(); },
   ekspresi(m) { darjo.userData.ekspresi(m); render(); },
-  lambai(on) { const arm = darjo.children.find(c => c.isGroup && c.position.x > 0.3 && c.position.y > 1.1); if (arm) { arm.rotation.set(on ? 0 : -0.95, 0, on ? 2.5 : -0.55); } render(); },
+  batik(nama) { scene.remove(darjo); darjo = makeCakDarjo({ batik: nama }); scene.add(darjo); render(); },
+  lambai(on) { const arm = darjo.children.find(c => c.isGroup && c.position.x > 0.3 && c.position.y > 1.1); if (arm) { arm.rotation.set(0, 0, on ? 2.5 : 0); } render(); },
   render,
 };
 addEventListener('resize', render);

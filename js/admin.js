@@ -22,6 +22,7 @@ $('keluar').onclick = () => { D.logoutAdmin(); location.reload(); };
 async function bukaPanel() {
   kota = await D.ambilKota();
   for (const b of kota.bangunan || []) if (b.tampil === undefined) b.tampil = true;
+  kota.papan = Object.assign({ tampil: true, judul: 'PENGUMUMAN', isi: 'Selamat datang di SidoarjoVerse!\nFollow = jadi warga\nKomen like terbanyak = besok dibangun\nBikin KTP-mu di tab KTP' }, kota.papan || {});
   kota.maskot = kota.maskot || { nama: 'Cak Darjo', kalimat: [], jadwal: [] };
   kota.maskot.jadwal = kota.maskot.jadwal || [];
   $('login').hidden = true; $('panel').hidden = false; $('keluar').hidden = false;
@@ -71,6 +72,8 @@ const SEKSI = {
       ${inp('nama', 'Nama website')}${inp('kota', 'Nama kota')}${inp('day', 'DAY ke-', 'num')}${inp('follower', 'Jumlah follower (warga)', 'num')}
       ${inp('tagline', 'Tagline', 'text', 'style="grid-column:1/-1"')}
       ${inp('jalan', 'Jalan aspal sudah dibangun', 'bool')}${inp('ayam', 'Jumlah ayam berkeliaran (0–20)', 'num', 'min="0" max="20"')}
+      ${inp('papan.tampil', 'Tampilkan papan pengumuman di peta', 'bool')}${inp('papan.judul', 'Papan pengumuman: judul')}
+      ${inp('papan.isi', 'Papan pengumuman: isi (pakai baris baru, maks ±6 baris)', 'area')}
       ${inp('berita', 'Berita berjalan (satu baris = satu berita)', 'lines')}
     </div></div>
     <div class="row"><div class="hd"><b>Akun resmi</b></div><div class="grid">
