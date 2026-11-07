@@ -1,4 +1,4 @@
-import { createWorld } from './world.js';
+import { createWorld, potretWarga } from './world.js';
 import * as D from './data.js';
 import { CONFIG } from './config.js';
 import { lookFor, drawPortrait } from './avatar.js';
@@ -95,7 +95,7 @@ function onPick(p, obj) {
   $('cardBody').innerHTML = html;
   $('card').hidden = false;
   const fm = $('fotoMini');
-  if (fm) drawPortrait(fm.getContext('2d'), 0, 0, 96, 96, lookFor(p.data));
+  if (fm) { try { fm.getContext('2d').drawImage(potretWarga(p.data, 96, '#cfe8ef'), 0, 0, 96, 96); } catch (_) { drawPortrait(fm.getContext('2d'), 0, 0, 96, 96, lookFor(p.data)); } }
   const bi = $('btnIkuti'); if (bi) bi.onclick = () => { world.ikuti(obj); bi.textContent = '🎥 Mengikuti…'; };
   const bk = $('btnKtpku'); if (bk) bk.onclick = () => buka('ktp');
 }
@@ -145,7 +145,9 @@ function gambarKTP(cv, w) {
   // foto
   c.fillStyle = '#fff'; c.beginPath(); c.roundRect(668, 158, 252, 300, 18); c.fill();
   c.save(); c.beginPath(); c.roundRect(680, 170, 228, 276, 12); c.clip();
-  drawPortrait(c, 680, 170, 228, 276, lookFor(w)); c.restore();
+  try { const pt = potretWarga(w, 228, '#cfe8ef'); c.drawImage(pt, 680, 170, 228, 276); }
+  catch (_) { drawPortrait(c, 680, 170, 228, 276, lookFor(w)); }   // cadangan bila WebGL tidak tersedia
+  c.restore();
   // isi
   const baris = [['NO. WARGA', w.kode], ['NAMA', w.nama], ['PEKERJAAN', w.pekerjaan], ['KECAMATAN', w.kecamatan], ['TERDAFTAR', new Date(w.created_at || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })], ['BERLAKU', 'SELAMA FOLLOW']];
   let y = 180;
@@ -155,9 +157,12 @@ function gambarKTP(cv, w) {
     let t = String(v || '-'); while (c.measureText(t).width > 590 && t.length > 3) t = t.slice(0, -2) + '…';
     c.fillText(t, 40, y + 32); y += 68;
   }
-  c.fillStyle = '#16324f'; c.font = 'italic 700 30px Georgia, serif'; c.textAlign = 'center'; c.fillText('Cak Darjo', 794, 500);
-  c.strokeStyle = '#16324f'; c.lineWidth = 2; c.beginPath(); c.moveTo(704, 520); c.lineTo(884, 520); c.stroke();
-  c.font = '600 16px system-ui, sans-serif'; c.fillStyle = '#5b7083'; c.fillText('Kepala Kota', 794, 542);
+  // identitas pemilik di bawah foto
+  c.textAlign = 'center'; c.fillStyle = '#16324f';
+  let fsN = 34; c.font = `900 ${fsN}px system-ui, sans-serif`;
+  while (c.measureText(w.nama).width > 240 && fsN > 18) { fsN -= 2; c.font = `900 ${fsN}px system-ui, sans-serif`; }
+  c.fillText(w.nama, 794, 500);
+  c.font = '600 18px system-ui, sans-serif'; c.fillStyle = '#5b7083'; c.fillText(`Warga Kec. ${w.kecamatan}`, 794, 534);
   c.textAlign = 'left'; c.font = '600 15px system-ui, sans-serif'; c.fillStyle = '#8796a5';
   c.fillText('Kartu fiksi komunitas SidoarjoVerse · bukan dokumen resmi', 40, H - 28);
 }

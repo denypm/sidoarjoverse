@@ -735,6 +735,30 @@ export function buatAkuarium() {
 export const LOOK_DARJO = { kulit: '#ecc39b', baju: '#b7cdbf', celana: '#2e3440', rambut: '#2b211b', kacamata: true };
 export const OPT_DARJO = { gaya: 'genz', batik: 'navy', kaos: '#f6f4ef', jam: true, tongkat: true };
 export function makeCharUmum(look, opt = {}) { return makeChar(look, opt); }
+// Foto avatar 3D warga (kepala + bahu) untuk KTP & kartu info. Satu renderer kecil dipakai ulang.
+let _potret = null;
+export function potretWarga(w, ukuran = 256, latar = '#cfe8ef') {
+  if (!_potret) {
+    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.12;
+    const sc = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight('#e4eef2', '#9a9070', 1.7));
+    const sun = new THREE.DirectionalLight('#ffe3bd', 2.3); sun.position.set(2, 4, 5); sc.add(sun);
+    const cam = new THREE.PerspectiveCamera(26, 0.82, 0.1, 50);
+    _potret = { r, sc, cam };
+  }
+  const { r, sc, cam } = _potret;
+  const tinggi = Math.round(ukuran / 0.82);
+  r.setPixelRatio(1); r.setSize(ukuran, tinggi, false); cam.aspect = ukuran / tinggi; cam.updateProjectionMatrix();
+  sc.background = new THREE.Color(latar);
+  const ch = makeChar(lookFor(w), {}); ch.userData.ekspresi('normal'); ch.rotation.y = -0.18; sc.add(ch);
+  cam.position.set(0.45, 2.1, 2.9); cam.lookAt(0, 1.95, 0);
+  r.render(sc, cam);
+  const cv = document.createElement('canvas'); cv.width = ukuran; cv.height = tinggi;
+  cv.getContext('2d').drawImage(r.domElement, 0, 0);
+  sc.remove(ch);
+  return cv;
+}
 export function makeCakDarjo(extra = {}) { return makeChar(LOOK_DARJO, Object.assign({}, OPT_DARJO, extra)); }
 
 export function makeAyam(r) {

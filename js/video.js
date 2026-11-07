@@ -380,6 +380,8 @@ window.video = {
       if (ch.g === world.maskot().g) continue;
       const p = ch.g.position;
       ch.g.visible = !(dekat && p.z > 0.0 && Math.abs(p.x) < 4.5);
+      const label = ch.g.children.find(o => o.isSprite);          // label nama terlalu dekat → terlalu besar di layar
+      if (label) label.visible = !(dekat && Math.hypot(p.x, p.z - 0.6) < 7);
     }
     world.frame(Math.min(dt, 0.05) || 1 / FPS, t);
     c.setTransform(1, 0, 0, 1, 0, 0);
