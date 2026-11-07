@@ -2,7 +2,7 @@
 // Semua adegan dibaca dari naskah.json (kamera, pose, stiker, efek suara per baris).
 // Pakai: video.html?dir=video/<nama>&skala=1.5
 import * as THREE from 'three';
-import { createWorld, makeCakDarjo, makeAyam } from './world.js';
+import { createWorld, makeCakDarjo, makeAyam, buatAkuarium, makeCharUmum } from './world.js';
 
 const W = 720, H = 1280;
 const q = new URLSearchParams(location.search);
@@ -18,6 +18,11 @@ function rapikan(tts) {
   return tts.replace(/Sidoarjo Vers/g, 'SidoarjoVerse').replace(/P\. O\. V\./g, 'POV').replace(/\.\.\./g, '…')
     .split(' ').map(k => SOROT.includes(k.replace(/[^A-Za-z]/g, '').toLowerCase()) ? k.toUpperCase() : k).join(' ');
 }
+// gambar untuk stiker "layar" (tangkapan layar website) dimuat dulu
+const GAMBAR = {};
+await Promise.all(NASKAH.baris.flatMap(b => (b.stiker || []).filter(x => x.jenis === 'layar')).map(x => new Promise(ok => {
+  const im = new Image(); im.onload = () => { GAMBAR[x.gambar] = im; ok(); }; im.onerror = ok; im.src = `${DIR}/${x.gambar}`;
+})));
 const SEG = TL.segmen.map((s, i) => {
   const b = NASKAH.baris[i];
   return Object.assign({}, s, b, { cap: b.subtitle_khusus ? s.cap : rapikan(b.tts) });
@@ -34,7 +39,7 @@ if (!NASKAH.kota || !NASKAH.kota.bangunan) kota.bangunan = [{ id: 'lahan1', nama
 const gl = document.getElementById('gl');
 const world = createWorld(gl, { manual: true });
 world.setKota(kota);
-world.setWarga([], '');
+world.setWarga(NASKAH.warga || [], '');
 world.maskot().g.visible = false;
 world.setJam(NASKAH.jam ?? 9.3);
 const { scene, camera, renderer } = world;
@@ -50,6 +55,21 @@ const tanganAwal = tangan.rotation.clone();
 const ayam = makeAyam(() => 0.2);
 ayam.position.set(1.35, 0, 1.9); ayam.rotation.y = -0.7;
 scene.add(ayam);
+// akuarium sesaat (baris dengan "prop": "akuarium")
+const akua = buatAkuarium(); akua.group.scale.setScalar(0.85); akua.group.visible = false; darjo.add(akua.group);
+akua.group.position.set(0, 1.12, 0.58);
+const tanganKiri = darjo.children.find(c => c.isGroup && c.position.x < -0.3 && c.position.y > 1.1);
+const kiriAwal = tanganKiri ? tanganKiri.rotation.clone() : null;
+const tongkat = tanganKiri ? tanganKiri.children.find(c => c.isGroup) : null;   // tongkat komando di tangan kiri
+// tukang bangunan (naskah: "tukang": "<id bangunan>")
+let tukang = null;
+if (NASKAH.tukang) {
+  const bt = kota.bangunan.find(b => b.id === NASKAH.tukang);
+  if (bt) {
+    tukang = makeCharUmum({ kulit: '#c98d5a', baju: '#f28c28', celana: '#3d405b', rambut: '#1a1a1a' }, { helm: '#ffd166' });
+    tukang.position.set(+bt.x - 5.6, 0, +bt.z + 2.2); tukang.rotation.y = 1.4; scene.add(tukang);
+  }
+}
 const lahanB = kota.bangunan.find(b => b.status === 'lahan') || { x: -8, z: -8 };
 const sorot = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.5, 7.2), new THREE.MeshBasicMaterial({ color: '#ffd166', transparent: true, opacity: 0.5, depthWrite: false }));
 sorot.position.set(+lahanB.x, 0.25, +lahanB.z); sorot.visible = false; scene.add(sorot);
@@ -74,7 +94,7 @@ function bidikan(jenis, sebelum) {
     case 'ayam': return { a: { pos: V(2.6, 1.3, 5.2), look: V(0.9, 0.7, 1.3) }, b: { pos: V(2.2, 1.05, 4.4), look: V(0.9, 0.7, 1.3) }, e: ease };
     case 'bangunan': {
       const b = kota.bangunan.find(x => x.id === arg) || lahanB;
-      return { a: { pos: V(+b.x + 10, 9, +b.z + 12), look: V(+b.x, 1, +b.z) }, b: { pos: V(+b.x + 6, 6, +b.z + 9), look: V(+b.x, 1.2, +b.z) }, e: ease };
+      return { a: { pos: V(+b.x - 4, 15, +b.z + 24), look: V(+b.x, 0.8, +b.z) }, b: { pos: V(+b.x - 2, 12, +b.z + 19), look: V(+b.x, 1.0, +b.z) }, e: ease };
     }
     default: return { a: { pos: V(0, 2.2, 5.6), look: LIHAT_D.clone() }, b: { pos: V(0, 2.18, 4.9), look: LIHAT_D.clone() }, e: ease }; // closeup
   }
@@ -103,7 +123,13 @@ function animDarjo(t, f) {
   darjo.position.y = Math.abs(Math.sin(t * 2.2)) * 0.02;
   const lambai = s.pose === 'melambai' && t >= mulai(i) && t < s.start + Math.min(2.2, s.dur);
   if (lambai) tangan.rotation.set(0, 0, 2.4 + Math.sin(t * 14) * 0.35); else tangan.rotation.copy(tanganAwal);
-  if (darjo.userData.tick) darjo.userData.tick(t);
+  const pakaiAkua = s.prop === 'akuarium';
+  akua.group.visible = pakaiAkua; if (tongkat) tongkat.visible = !pakaiAkua;
+  if (pakaiAkua) {     // dua tangan memegang akuarium; bandeng & udang "gelut"
+    tangan.rotation.set(-0.8, 0, -0.42); if (tanganKiri) tanganKiri.rotation.set(-0.8, 0, 0.42);
+    akua.tick(t * 4.5);
+  } else if (tanganKiri) tanganKiri.rotation.copy(kiriAwal);
+  if (tukang) { const a = tukang.userData.anim; a.arms[1].rotation.x = -1.2 + Math.abs(Math.sin(t * 7)) * -1.1; a.arms[0].rotation.x = -0.4; }
   ayam.rotation.x = Math.max(0, Math.sin(t * 6)) * 0.35;
 }
 
@@ -200,7 +226,7 @@ SEG.forEach((s, i) => {
   else if (s.sfx === 'stempel') catat(s.start + s.dur * 0.8, 'stempel');
   else if (s.sfx === 'tada') catat(s.start + 0.3, 'tada');
   for (const st of s.stiker || []) {
-    if (['pil', 'papan', 'kartu_teks', 'judul', 'url', 'follow', 'aturan'].includes(st.jenis)) catat(st._t0, 'pop');
+    if (['pil', 'papan', 'kartu_teks', 'judul', 'url', 'follow', 'aturan', 'klasemen', 'layar'].includes(st.jenis)) catat(st._t0, 'pop');
     if (st.jenis === 'ide') st.items.forEach((_, k) => catat(s.start + 0.2 + k * s.dur * 0.18, 'pop'));
     if (st.jenis === 'komen') st.items.forEach((_, k) => catat(st._t0 + 0.3 + k * 0.5, 'pop'));
   }
@@ -267,6 +293,45 @@ function gambarStiker(st, s, i, t, slot) {
         c.save(); c.translate(x, yy); c.rotate((k.r + u * 240) * Math.PI / 180); c.fillStyle = k.col; c.fillRect(-k.w / 2, -k.w / 4, k.w, k.w / 2); c.restore();
       }
       return;
+    case 'klasemen': {
+      const rows = st.rows || [];
+      return kartu(W / 2, 330, 560, 120 + rows.length * 74, ps, (x, yy) => {
+        c.fillStyle = TEAL; rr(x, yy, 560, 70, [26, 26, 0, 0]); c.fill();
+        teks(st.judul || '🏆 KLASEMEN KECAMATAN', x + 280, yy + 37, { size: 30, warna: KUNING });
+        const maks = Math.max(1, ...rows.map(r => r[1]));
+        rows.forEach(([nm, n], k) => {
+          const y0 = yy + 92 + k * 74, muncul = popS(t, t0 + 0.25 + k * 0.18);
+          if (muncul <= 0) return;
+          c.globalAlpha = Math.min(1, muncul);
+          teks(k === 0 ? '🥇' : `${k + 1}.`, x + 46, y0 + 22, { size: 30, warna: '#16324f' });
+          teks(nm, x + 86, y0 + 10, { size: 28, warna: '#16324f', align: 'left' });
+          c.fillStyle = '#eadfcb'; rr(x + 86, y0 + 32, 330, 14, 7); c.fill();
+          c.fillStyle = k === 0 ? OREN : '#2a9d8f'; rr(x + 86, y0 + 32, 330 * (n / maks) * Math.min(1, (t - t0) / 0.8), 14, 7); c.fill();
+          teks(`${n} warga`, x + 520, y0 + 24, { size: 24, warna: '#5b7083', align: 'right', bobot: 700 });
+          c.globalAlpha = 1;
+        });
+      }, { bg: KREM });
+    }
+    case 'layar': {
+      const img = GAMBAR[st.gambar]; if (!img) return;
+      const w = 400, h = w * img.height / img.width, cx = W / 2, cy = st.y || 560;
+      denganSkala(cx, cy, ps, () => {
+        c.save(); c.translate(cx, cy); c.rotate((st.miring || -0.03));
+        c.fillStyle = 'rgba(0,0,0,.28)'; rr(-w / 2 - 14 + 10, -h / 2 - 56 + 16, w + 28, h + 84, 46); c.fill();
+        c.fillStyle = '#16181d'; rr(-w / 2 - 14, -h / 2 - 56, w + 28, h + 84, 46); c.fill();
+        c.fillStyle = '#f1f3f4'; rr(-w / 2, -h / 2 - 44, w, 40, [14, 14, 0, 0]); c.fill();
+        teks('🔒 sidoarjoverse.github.io', 0, -h / 2 - 24, { size: 17, warna: '#3c4043', bobot: 600 });
+        c.save(); rr(-w / 2, -h / 2 - 4, w, h, [0, 0, 14, 14]); c.clip(); c.drawImage(img, -w / 2, -h / 2 - 4, w, h); c.restore();
+        if (st.ketuk) {          // lingkaran "ketuk" di posisi tombol (0..1 relatif gambar)
+          const [fx, fy] = st.ketuk, px = -w / 2 + fx * w, py = -h / 2 - 4 + fy * h, u = ((t - t0) % 1.2) / 1.2;
+          c.strokeStyle = `rgba(242,140,40,${1 - u})`; c.lineWidth = 6; c.beginPath(); c.arc(px, py, 18 + u * 30, 0, Math.PI * 2); c.stroke();
+          c.fillStyle = 'rgba(242,140,40,.85)'; c.beginPath(); c.arc(px, py, 14, 0, Math.PI * 2); c.fill();
+        }
+        c.restore();
+      });
+      if (st.label) pil(st.label, W / 2, 170, popS(t, t0 + 0.2), 'teal', 34);
+      return;
+    }
     case 'lahan': {
       if (t < s.start + s.dur * 0.4) return;
       const [px, py] = proyeksi(V(+lahanB.x, 0.5, +lahanB.z));
@@ -277,7 +342,11 @@ function gambarStiker(st, s, i, t, slot) {
 
 function overlay(t) {
   c.save(); c.scale(SKALA, SKALA);
-  teks('@sidoarjoverse', 40, 64, { size: 26, warna: 'rgba(255,255,255,.92)', align: 'left', garis: 6, warnaGaris: 'rgba(15,76,92,.6)' });
+  if (NASKAH.day != null) {   // lencana DAY di kiri atas, akun di kanan atas
+    const lb = `DAY ${NASKAH.day}`; const lw = ukur(lb, 30) + 36;
+    c.fillStyle = '#16181d'; rr(36, 40, lw, 52, 14); c.fill(); teks(lb, 36 + lw / 2, 67, { size: 30, warna: KUNING });
+    teks('@sidoarjoverse', W - 40, 66, { size: 24, warna: 'rgba(255,255,255,.92)', align: 'right', garis: 6, warnaGaris: 'rgba(15,76,92,.6)' });
+  } else teks('@sidoarjoverse', 40, 64, { size: 26, warna: 'rgba(255,255,255,.92)', align: 'left', garis: 6, warnaGaris: 'rgba(15,76,92,.6)' });
   const i = segPada(t), s = SEG[i];
   let slot = 0;
   for (const st of s.stiker || []) { if (t >= st._t0) gambarStiker(st, s, i, t, slot); if (['pil', 'papan'].includes(st.jenis)) slot++; }
@@ -305,6 +374,13 @@ window.video = {
     sorot.visible = ada && ks > 0;
     sorot.material.opacity = Math.min(1, Math.max(0, ks)) * (0.42 + Math.sin(t * 6) * 0.14);
     kamera(t);
+    // saat kamera dekat, sembunyikan warga yang lewat di antara kamera dan Cak Darjo
+    const dekat = /^(closeup|medium|ayam)/.test(String(s.kamera || 'closeup'));
+    for (const ch of world.karakter()) {
+      if (ch.g === world.maskot().g) continue;
+      const p = ch.g.position;
+      ch.g.visible = !(dekat && p.z > 0.0 && Math.abs(p.x) < 4.5);
+    }
     world.frame(Math.min(dt, 0.05) || 1 / FPS, t);
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.drawImage(gl, 0, 0, out.width, out.height);

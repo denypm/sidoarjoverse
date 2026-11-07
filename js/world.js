@@ -532,6 +532,11 @@ function makeChar(look, opt = {}) {
     }
     if (look.rambutPanjang) mesh(GEO.bola, look.rambut, 0.84, 0.92, 0.55, 0, -0.14, -0.18, head);
   }
+  if (opt.helm) {   // helm proyek (tukang)
+    const hm = new THREE.Mesh(new THREE.SphereGeometry(0.5, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2), M(opt.helm));
+    hm.scale.set(RX * 2.15, RY * 1.9, RZ * 2.15); hm.position.y = 0.06; hm.castShadow = true; head.add(hm);
+    mesh(GEO.tabung, opt.helm, RX * 2.35, 0.03, RZ * 2.5, 0, 0.07, 0.04, head);
+  }
   if (opt.peci) {
     const pc = mesh(GEO.tabung, '#151515', 0.6, 0.2, 0.52, 0, 0.42, -0.03, head); pc.rotation.x = -0.12;
     const pb = mesh(GEO.tabung, '#3a3a3a', 0.605, 0.025, 0.525, 0, 0.335, -0.02, head); pb.rotation.x = -0.12;
@@ -729,6 +734,7 @@ export function buatAkuarium() {
 // Profil tetap Cak Darjo (dipakai peta, studio video, dan gambar profil)
 export const LOOK_DARJO = { kulit: '#ecc39b', baju: '#b7cdbf', celana: '#2e3440', rambut: '#2b211b', kacamata: true };
 export const OPT_DARJO = { gaya: 'genz', batik: 'navy', kaos: '#f6f4ef', jam: true, tongkat: true };
+export function makeCharUmum(look, opt = {}) { return makeChar(look, opt); }
 export function makeCakDarjo(extra = {}) { return makeChar(LOOK_DARJO, Object.assign({}, OPT_DARJO, extra)); }
 
 export function makeAyam(r) {
@@ -751,6 +757,7 @@ export function createWorld(canvas, { onPick, onDekat, manual = false } = {}) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;   // warna lembut ala film
   renderer.toneMappingExposure = 1.12;
+  renderer.localClippingEnabled = true;   // untuk bangunan yang sedang dibangun
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog('#dfe6e4', 60, 165);
@@ -943,7 +950,10 @@ export function createWorld(canvas, { onPick, onDekat, manual = false } = {}) {
         if (p < 1) {
           const box = new THREE.Box3().setFromObject(model);
           const H = box.max.y;
-          model.scale.y = p;
+          // tampilkan bangunan setinggi progres (dipotong bidang horizontal), bukan digepengkan
+          const tinggiPotong = Math.max(0.25, H * p);
+          const potong = [new THREE.Plane(new THREE.Vector3(0, -1, 0), tinggiPotong)];
+          model.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.clippingPlanes = potong; o.material.clipShadows = true; } });
           const sv = new VB();
           const kaki = [[box.min.x - 0.3, box.min.z - 0.3], [box.max.x + 0.3, box.min.z - 0.3], [box.min.x - 0.3, box.max.z + 0.3], [box.max.x + 0.3, box.max.z + 0.3]];
           for (const [x, z] of kaki) sv.box(x, 0, z, 0.14, H + 0.4, 0.14, '#f2a33a');
@@ -956,7 +966,7 @@ export function createWorld(canvas, { onPick, onDekat, manual = false } = {}) {
           for (let i = 0; i < 4; i++) sv.box(box.max.x - 0.6 - i * 0.5, 0, box.max.z + 1.0, 0.45, 0.3, 0.9, '#9e9e9e');
           holder.add(sv.build());
           const lb = textSprite(`🚧 Dibangun ${Math.round(p * 100)}%`, { bg: 'rgba(255,209,102,.96)', fg: '#3d2a00', size: 0.85 });
-          lb.position.set(0, H * p + 1.2, 0); holder.add(lb);
+          lb.position.set(0, H + 0.8, 0); holder.add(lb);
         }
       }
       holder.add(model);
@@ -1329,6 +1339,7 @@ export function createWorld(canvas, { onPick, onDekat, manual = false } = {}) {
     },
     gerak(x, y) { masukan.x = x; masukan.y = y; },
     sedangMain: () => !!pemain,
+    karakter: () => chars,
     // ----- untuk mode video (manual)
     frame(dt, t) { langkah(dt, t, true); },
     setJam(h) { jamTetap = h; updateLangit(); },
