@@ -173,13 +173,7 @@ function renderKTP() {
         <button class="btn ghost" id="kShare">🔗 Bagikan</button>
       </div>
       ${jabatanMap[saya.kode] ? `<p class="warn">🎖 Kamu menjabat sebagai <b>${esc(jabatanMap[saya.kode])}</b>!</p>` : ''}
-      <div class="item pinbox">
-        <div class="lab">🔐 Rahasia, jangan dibagikan</div>
-        ${pinSaya ? `<p>Nomor warga <b>${esc(saya.kode)}</b> · PIN <b class="pin">${esc(pinSaya)}</b></p>
-          <p class="mini" style="margin-top:6px">PIN dipakai untuk <b>vote di Pemilu</b> dan membuka KTP ini di HP lain. Screenshot dan simpan baik-baik.</p>`
-        : `<p>PIN KTP ini belum tersimpan di HP ini. Masukkan PIN supaya bisa ikut vote:</p>
-          <div style="display:flex;gap:8px;margin-top:8px"><input id="kPin" class="inp" placeholder="PIN 6 huruf/angka" maxlength="6" autocapitalize="characters"><button class="btn" id="kPinOk">Simpan</button></div><div class="err" id="kPinErr"></div>`}
-      </div>
+      <p class="mini">Nomor wargamu: <b>${esc(saya.kode)}</b> (untuk membuka KTP ini di HP lain).</p>
       <button class="lnk" id="kLupa">Bukan KTP saya / ganti KTP</button>`;
     gambarKTP($('ktpCv'), saya);
     $('kSimpan').onclick = () => { const a = document.createElement('a'); a.download = `KTP-SidoarjoVerse-${saya.nama}.png`; a.href = $('ktpCv').toDataURL('image/png'); a.click(); };
@@ -196,12 +190,7 @@ function renderKTP() {
         else { await navigator.clipboard.writeText(teks + ' ' + url); $('kShare').textContent = '✅ Link disalin'; }
       } catch (_) {}
     };
-    $('kLupa').onclick = () => { if (confirm('Lepas KTP ini dari perangkat ini? (Data warga tetap ada, buka lagi pakai nomor warga + PIN.)')) { localStorage.removeItem(KEY_KTP); localStorage.removeItem(KEY_PIN); kodeSaya = ''; pinSaya = ''; saya = null; renderKTP(); refreshWarga(); } };
-    const kp = $('kPinOk'); if (kp) kp.onclick = async () => {
-      const pin = $('kPin').value.trim().toUpperCase();
-      try { if (await D.cekPin(saya.kode, pin)) { pinSaya = pin; localStorage.setItem(KEY_PIN, pin); renderKTP(); } else $('kPinErr').textContent = 'PIN salah.'; }
-      catch (e) { $('kPinErr').textContent = e.message; }
-    };
+    $('kLupa').onclick = () => { if (confirm('Lepas KTP ini dari HP ini? (Data warga tetap ada, buka lagi pakai nomor warga.)')) { localStorage.removeItem(KEY_KTP); localStorage.removeItem(KEY_PIN); kodeSaya = ''; pinSaya = ''; saya = null; renderKTP(); refreshWarga(); } };
     $('ctaKtp').hidden = true;
     $('btnMain').hidden = !world;
     return;
@@ -225,8 +214,7 @@ function renderKTP() {
       <button class="btn oren full" id="fKirim">🪪 Terbitkan KTP</button>
     </form>
     <h3 class="sec">Sudah punya KTP?</h3>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="fKode" class="inp" style="flex:2;min-width:150px" placeholder="SDA-XXXXXX" autocapitalize="characters"><input id="fPin" class="inp" style="flex:1;min-width:110px" placeholder="PIN" maxlength="6" autocapitalize="characters"><button class="btn" id="fBuka">Buka</button></div>
-    <small class="mini">PIN ada di halaman KTP saat pertama dibuat. Tanpa PIN, KTP tetap bisa dilihat tapi tidak bisa vote.</small>
+    <div style="display:flex;gap:8px"><input id="fKode" class="inp" placeholder="Nomor warga, mis. SDA-XXXXXX" autocapitalize="characters"><button class="btn" id="fBuka">Buka</button></div>
     <div class="err" id="fErr2"></div>`;
   $('fKtp').onsubmit = async e => {
     e.preventDefault();
@@ -242,9 +230,7 @@ function renderKTP() {
     try {
       const w = await D.cariKode($('fKode').value);
       if (!w) { $('fErr2').textContent = 'Nomor warga tidak ditemukan.'; return; }
-      const pin = $('fPin').value.trim().toUpperCase();
-      if (pin && !(await D.cekPin(w.kode, pin))) { $('fErr2').textContent = 'PIN salah.'; return; }
-      setSaya(Object.assign({}, w, pin ? { pin } : {}));
+      setSaya(w);
     }
     catch (err) { $('fErr2').textContent = err.message; }
   };
@@ -335,7 +321,7 @@ async function renderPemilu() {
         </div>`;
       }).join('') : '<p class="meta">Kandidat belum diumumkan.</p>'}
       ${p.status === 'voting' && !saya ? '<p class="warn">Bikin KTP dulu untuk ikut memilih (tab KTP). KTP harus dibuat sebelum voting dibuka.</p>' : ''}
-      ${p.status === 'voting' && saya && !pinSaya ? '<p class="warn">Masukkan PIN KTP-mu di tab KTP supaya bisa memilih.</p>' : ''}
+      ${p.status === 'voting' && saya && !pinSaya ? '<p class="warn">Voting hanya bisa dari HP tempat KTP-mu dibuat.</p>' : ''}
       <div class="err" data-err="${esc(p.id)}"></div>
     </div>`;
   };
@@ -352,7 +338,7 @@ async function renderPemilu() {
     const p = pemiluList.find(x => x.id === k.pemilu_id);
     const err = box.querySelector(`[data-err="${CSS.escape(p.id)}"]`);
     if (!saya) { buka('ktp'); return; }
-    if (!pinSaya) { err.textContent = 'Masukkan PIN KTP-mu dulu di tab KTP.'; return; }
+    if (!pinSaya) { err.textContent = 'Voting hanya bisa dari HP tempat KTP-mu dibuat.'; return; }
     if (!confirm(`Pilih ${k.nomor}. ${k.nama} sebagai ${p.jabatan}? Pilihan tidak bisa diubah.`)) return;
     b.disabled = true;
     try { await D.vote(kodeSaya, pinSaya, k.id); renderPemilu(); }
